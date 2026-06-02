@@ -76,6 +76,23 @@ export const PACKS = [
       { title: 'снайпер', artist: 'tewiq' },
     ],
   },
+  {
+    id: 'ru-2017',
+    name: 'Русская музыка 2017',
+    icon: 'music',
+    songs: [
+      { title: 'Кружит', artist: 'MONATIK' },
+      { title: 'Навернопотомучто', artist: 'Время и Стекло' },
+      { title: 'Тролль', artist: 'Время и Стекло' },
+      { title: 'Невеста', artist: 'Егор Крид' },
+      { title: 'Хлопья летят наверх', artist: 'Feduk' },
+      { title: 'Улети', artist: 'T-Fest' },
+      { title: 'Малиновый закат', artist: 'Макс Корж' },
+      { title: 'Малиновый свет', artist: 'Леша Свик' },
+      { title: 'Держи', artist: 'Дима Билан' },
+      { title: 'Капкан', artist: 'Мот' },
+    ],
+  },
 ];
 
 export function getPack(id) {

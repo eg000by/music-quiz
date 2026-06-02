@@ -3,12 +3,17 @@
 // Хост (создатель лобби) управляет сменой раундов; игроки пишут только свои ответы.
 import {
   doc,
+  collection,
+  query,
+  where,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   deleteDoc,
   onSnapshot,
   serverTimestamp,
+  Timestamp,
   increment,
   arrayUnion,
   arrayRemove,
@@ -19,6 +24,23 @@ import { searchTrack } from './itunes';
 import { serverNow } from './clock';
 
 const DEFAULT_ROUNDS = 8;
+
+// Лобби живёт ограниченное время. Партия идёт минуты, поэтому всё, что старше
+// нескольких часов — это заброшенные/завершённые лобби, которые можно удалять.
+const LOBBY_TTL_MS = 6 * 60 * 60 * 1000; // 6 часов
+
+// Удаляет старые лобби. Вызывается при создании нового лобби (ленивая сборка мусора),
+// чтобы база не копила брошенные документы. Ошибки игнорируем — это фоновая чистка.
+export async function cleanupOldLobbies() {
+  try {
+    const cutoff = Timestamp.fromMillis(Date.now() - LOBBY_TTL_MS);
+    const q = query(collection(db, 'lobbies'), where('createdAt', '<', cutoff));
+    const snap = await getDocs(q);
+    await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+  } catch {
+    // не критично
+  }
+}
 
 function genCode() {
   return String(Math.floor(1000 + Math.random() * 9000));
@@ -44,6 +66,7 @@ function playerObj(user) {
 }
 
 export async function createLobby(user, pack) {
+  cleanupOldLobbies(); // фоновая чистка старых лобби, не ждём результата
   for (let i = 0; i < 10; i++) {
     const code = genCode();
     const ref = doc(db, 'lobbies', code);
