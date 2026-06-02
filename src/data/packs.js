@@ -59,6 +59,20 @@ export const PACKS = [
       { title: 'Сансара', artist: 'Баста' },
     ],
   },
+  {
+    id: 'dota2-2025',
+    name: 'Дота 2 2025',
+    icon: 'zap',
+    songs: [
+      { title: 'отвратительный король', artist: 'тёмный принц' },
+      { title: 'ты че обиделась', artist: 'madk1d тёмный принц' },
+      { title: 'Jealous', artist: '9mice Егор Крид' },
+      { title: 'MARTINE ROSE', artist: 'madk1d greyrock tewiq' },
+      { title: 'LIPSTICK', artist: 'Kai Angel 9mice' },
+      { title: 'Ice + Alabaster', artist: '9mice Kai Angel' },
+      { title: 'автозаправка', artist: 'тёмный принц' },
+    ],
+  },
 ];
 
 export function getPack(id) {
