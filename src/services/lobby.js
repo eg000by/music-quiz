@@ -6,13 +6,17 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   serverTimestamp,
   increment,
   arrayUnion,
+  arrayRemove,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { searchTrack } from './itunes';
+import { serverNow } from './clock';
 
 const DEFAULT_ROUNDS = 8;
 
@@ -160,7 +164,7 @@ export async function startGame(code, pack, totalRounds = DEFAULT_ROUNDS) {
     totalRounds: rounds.length,
     log: [],
     answers: {},
-    current: { index: 0, phase: 'playing', startedAt: Date.now() },
+    current: { index: 0, phase: 'playing', startedAt: serverNow() },
   });
 }
 
@@ -206,7 +210,23 @@ export async function advanceRound(code) {
     await updateDoc(ref, {
       log: arrayUnion(logEntry),
       answers: {},
-      current: { index: nextIdx, phase: 'playing', startedAt: Date.now() },
+      current: { index: nextIdx, phase: 'playing', startedAt: serverNow() },
+    });
+  }
+}
+
+// Игрок выходит из лобби. Хост закрывает лобби целиком (удаляет документ),
+// обычный игрок просто покидает состав.
+export async function leaveLobby(code, uid) {
+  const ref = doc(db, 'lobbies', code);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  if (snap.data().hostId === uid) {
+    await deleteDoc(ref);
+  } else {
+    await updateDoc(ref, {
+      [`players.${uid}`]: deleteField(),
+      playerOrder: arrayRemove(uid),
     });
   }
 }

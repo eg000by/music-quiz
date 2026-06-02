@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { getPack } from '../data/packs';
-import { setReady, startGame } from '../services/lobby';
+import { setReady, startGame, leaveLobby } from '../services/lobby';
+import { syncClock } from '../services/clock';
 import Icon from '../components/Icon';
 
 export default function Lobby() {
@@ -13,6 +14,11 @@ export default function Lobby() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
+
+  // заранее измеряем смещение часов, чтобы хост стартовал раунды в серверном времени
+  useEffect(() => {
+    if (code && user?.uid) syncClock(code, user.uid);
+  }, [code, user?.uid]);
 
   // как только игра началась — переходим на экран игры
   useEffect(() => {
@@ -45,6 +51,11 @@ export default function Lobby() {
   const everyoneReady = players.length >= 1 && players.every((p) => p.ready);
 
   const toggleReady = () => setReady(code, user.uid, !me.ready).catch(() => {});
+
+  const handleLeave = async () => {
+    await leaveLobby(code, user.uid).catch(() => {});
+    navigate('/');
+  };
 
   const handleStart = async () => {
     setError('');
@@ -93,7 +104,7 @@ export default function Lobby() {
         {!isHost && <p className="muted">Хост запустит игру, когда все будут готовы</p>}
 
         {error && <div className="error">{error}</div>}
-        <button className="btn-link" onClick={() => navigate('/')}>выйти из лобби</button>
+        <button className="btn-link" onClick={handleLeave}>выйти из лобби</button>
       </div>
     </div>
   );

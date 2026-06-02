@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { resetLobby } from '../services/lobby';
+import { STAGES } from '../services/scoring';
 import Icon from '../components/Icon';
 import trophy from '../assets/illustrations/trophy.svg';
 
@@ -18,7 +19,7 @@ function statsForPlayer(log, uid) {
       correct += 1;
       totalTime += a.atMs;
       answered += 1;
-      if (a.atMs < 3000) fast += 1;
+      if (a.atMs < STAGES[0].maxMs) fast += 1;
     }
   }
   return {
@@ -79,7 +80,7 @@ export default function Results() {
                 </div>
                 <div className="big-score">{p.score}</div>
                 <div className="stat-line"><span>Угадано</span><b>{s.correct} / {log.length}</b></div>
-                <div className="stat-line"><span>Молниеносных (≤3с)</span><b>{s.fast}</b></div>
+                <div className="stat-line"><span>Молниеносных (≤{STAGES[0].short})</span><b>{s.fast}</b></div>
                 <div className="stat-line">
                   <span>Среднее время</span>
                   <b>{s.avgTime != null ? `${(s.avgTime / 1000).toFixed(1)}с` : '—'}</b>

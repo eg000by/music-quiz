@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { submitAnswer, revealRound, advanceRound } from '../services/lobby';
 import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed } from '../services/scoring';
+import { serverNow, syncClock } from '../services/clock';
 import Icon from '../components/Icon';
 
 export default function Game() {
@@ -13,7 +14,7 @@ export default function Game() {
   const navigate = useNavigate();
 
   const audioRef = useRef(null);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(serverNow());
   const [myAnswer, setMyAnswer] = useState(null);
   const [needTap, setNeedTap] = useState(false);
 
@@ -23,15 +24,21 @@ export default function Game() {
   const phase = current?.phase;
   const idx = current?.index;
 
-  // тикающие часы для прогресс-бара и этапов
+  // тикающие часы для прогресс-бара и этапов (серверное время — одинаково у обоих игроков)
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 100);
+    const id = setInterval(() => setNow(serverNow()), 100);
     return () => clearInterval(id);
   }, []);
 
-  // сброс своего ответа при смене раунда
+  // измеряем смещение часов этого устройства относительно сервера для честного тайминга
+  useEffect(() => {
+    if (code && user?.uid) syncClock(code, user.uid);
+  }, [code, user?.uid]);
+
+  // сброс своего ответа при смене раунда + снятие фокуса с кнопки прошлого раунда
   useEffect(() => {
     setMyAnswer(null);
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }, [idx]);
 
   // управление аудио
@@ -44,7 +51,7 @@ export default function Game() {
         audio.src = round.previewUrl;
       }
       const start = () => {
-        const target = round.offset + Math.max(0, (Date.now() - current.startedAt) / 1000);
+        const target = round.offset + Math.max(0, (serverNow() - current.startedAt) / 1000);
         try { audio.currentTime = target; } catch { /* ignore */ }
         audio.play().then(() => setNeedTap(false)).catch(() => setNeedTap(true));
       };
@@ -71,7 +78,7 @@ export default function Game() {
     if (!isHost || !current || lobby?.status !== 'playing') return;
     let t;
     if (phase === 'playing') {
-      const remaining = ROUND_MS - (Date.now() - current.startedAt) + 300;
+      const remaining = ROUND_MS - (serverNow() - current.startedAt) + 300;
       t = setTimeout(() => revealRound(code).catch(() => {}), Math.max(0, remaining));
     } else if (phase === 'reveal') {
       t = setTimeout(() => advanceRound(code).catch(() => {}), 4000);
@@ -113,7 +120,7 @@ export default function Game() {
 
   const pick = (i) => {
     if (myAnswer || reveal) return;
-    const e = Date.now() - current.startedAt;
+    const e = serverNow() - current.startedAt;
     const correct = i === round.correctIndex;
     const ans = {
       choice: i,
@@ -194,7 +201,7 @@ export default function Game() {
               <button
                 key={i}
                 className={cls}
-                onClick={() => pick(i)}
+                onClick={(e) => { e.currentTarget.blur(); pick(i); }}
                 disabled={!!myAnswer || reveal}
               >
                 {opt}
@@ -204,7 +211,7 @@ export default function Game() {
         </div>
 
         {!reveal && myAnswer && (
-          <p className="muted waiting">Ответ принят ({myAnswer.points} очков). Ждём соперника…</p>
+          <p className="muted waiting">Ответ принят. Ждём соперника…</p>
         )}
 
         {reveal && (
