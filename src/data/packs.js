@@ -11,7 +11,7 @@ export const PACKS = [
   {
     id: 'world-hits',
     name: 'Мировые хиты',
-    emoji: '🌍',
+    icon: 'globe',
     songs: [
       { title: 'Billie Jean', artist: 'Michael Jackson' },
       { title: 'Bohemian Rhapsody', artist: 'Queen' },
@@ -28,7 +28,7 @@ export const PACKS = [
   {
     id: 'rock-classics',
     name: 'Рок-классика',
-    emoji: '🎸',
+    icon: 'zap',
     songs: [
       { title: 'Sweet Child O Mine', artist: 'Guns N Roses' },
       { title: 'Back In Black', artist: 'AC/DC' },
@@ -45,7 +45,7 @@ export const PACKS = [
   {
     id: 'ru-pop',
     name: 'Русская эстрада и поп',
-    emoji: '🇷🇺',
+    icon: 'star',
     songs: [
       { title: 'Я свободен', artist: 'Кипелов' },
       { title: 'Звезда по имени Солнце', artist: 'Кино' },

@@ -1,0 +1,35 @@
+// Inline Lucide-style icons (stroke 1.75, currentColor). Без эмодзи, без зависимостей.
+// Использование: <Icon name="globe" size={20} className="..." />
+const ICONS = {
+  music:      '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  globe:      '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  zap:        '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
+  star:       '<path d="M12 2.5l2.95 5.98 6.6.96-4.77 4.65 1.13 6.57L12 17.55 6.09 20.66l1.13-6.57L2.45 9.44l6.6-.96z"/>',
+  crown:      '<path d="M5 16 3 6l5 4 4-7 4 7 5-4-2 10z"/><path d="M5 19h14"/>',
+  check:      '<polyline points="20 6 9 17 4 12"/>',
+  x:          '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  play:       '<path d="M6 4l13 8-13 8z" fill="currentColor" stroke="none"/>',
+  logout:     '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+  rotate:     '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
+  arrowRight: '<line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 5 20 12 13 19"/>',
+};
+
+export default function Icon({ name, size = 20, className, style }) {
+  const inner = ICONS[name] || '';
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={style}
+      aria-hidden="true"
+      dangerouslySetInnerHTML={{ __html: inner }}
+    />
+  );
+}

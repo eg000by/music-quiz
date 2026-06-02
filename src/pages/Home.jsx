@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { PACKS } from '../data/packs';
 import { createLobby, joinLobby } from '../services/lobby';
+import Icon from '../components/Icon';
 
 export default function Home() {
   const { user, signOut } = useAuth();
@@ -46,7 +47,7 @@ export default function Home() {
   return (
     <div className="screen">
       <header className="topbar">
-        <div className="brand">🎵 Викторина</div>
+        <div className="brand"><span className="brand-logo"><Icon name="music" size={16} /></span> Викторина</div>
         <div className="user">
           {user.photoURL && <img src={user.photoURL} alt="" className="avatar" />}
           <span>{user.displayName}</span>
@@ -65,7 +66,7 @@ export default function Home() {
                 className={`pack ${packId === p.id ? 'pack-active' : ''}`}
                 onClick={() => setPackId(p.id)}
               >
-                <span className="pack-emoji">{p.emoji}</span>
+                <span className="pack-emoji"><Icon name={p.icon} size={21} /></span>
                 <span className="pack-name">{p.name}</span>
                 <span className="pack-count">{p.songs.length} песен</span>
               </button>

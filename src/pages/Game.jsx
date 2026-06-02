@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { submitAnswer, revealRound, advanceRound } from '../services/lobby';
 import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed } from '../services/scoring';
+import Icon from '../components/Icon';
 
 export default function Game() {
   const { code } = useParams();
@@ -151,7 +152,7 @@ export default function Game() {
           {reveal && round.artwork ? (
             <img src={round.artwork} alt="" />
           ) : (
-            <div className="cover-ph">{reveal ? '🎵' : '?'}</div>
+            <div className="cover-ph">{reveal ? <Icon name="music" size={88} /> : '?'}</div>
           )}
         </div>
 
@@ -229,7 +230,7 @@ export default function Game() {
 
       {needTap && !reveal && (
         <button className="tap-overlay" onClick={resumeAudio}>
-          ▶︎ Нажми, чтобы слушать
+          <Icon name="play" size={15} /> Нажми, чтобы слушать
         </button>
       )}
     </div>

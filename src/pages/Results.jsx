@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { resetLobby } from '../services/lobby';
+import Icon from '../components/Icon';
+import trophy from '../assets/illustrations/trophy.svg';
 
 function statsForPlayer(log, uid) {
   let correct = 0;
@@ -62,7 +64,8 @@ export default function Results() {
   return (
     <div className="screen center">
       <div className="card results-card">
-        <div className="trophy">🏆</div>
+        <div className="results-illo"><img src={trophy} alt="" /></div>
+        <span className="eyebrow">{tie ? 'Итог матча' : 'Победитель'}</span>
         <h1>{tie ? 'Ничья!' : `Победил ${winner?.name?.split(' ')[0]}`}</h1>
 
         <div className="results-grid">
@@ -88,7 +91,7 @@ export default function Results() {
 
         <div className="results-actions">
           {isHost ? (
-            <button className="btn btn-primary" onClick={handleAgain}>Играть снова</button>
+            <button className="btn btn-primary" onClick={handleAgain}><Icon name="rotate" size={18} /> Играть снова</button>
           ) : (
             <p className="muted">Хост может запустить новую игру</p>
           )}

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { getPack } from '../data/packs';
 import { setReady, startGame } from '../services/lobby';
+import Icon from '../components/Icon';
 
 export default function Lobby() {
   const { code } = useParams();
@@ -59,15 +60,15 @@ export default function Lobby() {
   return (
     <div className="screen center">
       <div className="card lobby-card">
-        <p className="muted">Код лобби</p>
+        <span className="eyebrow">Код лобби</span>
         <div className="code-display">{lobby.code}</div>
-        <p className="muted pack-line">{pack?.emoji} {lobby.packName}</p>
+        <p className="muted pack-line">{pack && <Icon name={pack.icon} size={15} />} {lobby.packName}</p>
 
         <div className="players-list">
           {players.map((p) => (
             <div key={p.uid} className="player-row">
               {p.photo ? <img src={p.photo} alt="" className="avatar" /> : <div className="avatar ph">{p.name[0]}</div>}
-              <span className="player-name">{p.name}{p.uid === lobby.hostId && ' 👑'}</span>
+              <span className="player-name">{p.name}{p.uid === lobby.hostId && <Icon name="crown" size={15} className="host-mark" />}</span>
               <span className={`ready-badge ${p.ready ? 'on' : ''}`}>{p.ready ? 'готов' : 'не готов'}</span>
             </div>
           ))}
@@ -77,7 +78,7 @@ export default function Lobby() {
         </div>
 
         <button className={`btn ${me.ready ? 'btn-secondary' : 'btn-primary'}`} onClick={toggleReady}>
-          {me.ready ? 'Отменить готовность' : 'Я готов'}
+          {me.ready ? 'Отменить готовность' : <><Icon name="check" size={18} /> Я готов</>}
         </button>
 
         {isHost && (
@@ -86,7 +87,7 @@ export default function Lobby() {
             onClick={handleStart}
             disabled={!everyoneReady || starting}
           >
-            {starting ? 'Загрузка треков…' : 'Начать игру'}
+            {starting ? 'Загрузка треков…' : <><Icon name="play" size={18} /> Начать игру</>}
           </button>
         )}
         {!isHost && <p className="muted">Хост запустит игру, когда все будут готовы</p>}
