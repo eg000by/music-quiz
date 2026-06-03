@@ -19,8 +19,7 @@ const MIN_ROUNDS = 3;
 const MAX_ROUNDS = 15;
 const MODES = [
   { id: 'normal', label: 'Обычный' },
-  { id: 'evolution', label: 'Эволюция' },
-  { id: 'emoji', label: 'Смайлики' },
+  { id: 'evolution', label: 'Эволюция трека' },
 ];
 
 export default function Lobby() {
@@ -104,7 +103,6 @@ export default function Lobby() {
             ? `В игре: ${poolSongs} песен · ${roundCount} раундов`
             : `Выберите паки · ${roundCount} раундов`}
           {mode === 'evolution' && ' · режим: Эволюция трека'}
-          {mode === 'emoji' && ' · режим: Смайлики'}
         </p>
 
         <div className="players-list">
@@ -177,9 +175,6 @@ export default function Lobby() {
               </div>
               {mode === 'evolution' && (
                 <p className="muted mode-hint">Трек звучит глухо и проясняется к концу раунда — угадывай раньше.</p>
-              )}
-              {mode === 'emoji' && (
-                <p className="muted mode-hint">Без звука: показываем эмодзи-ребус, угадывай песню. Возьми пак «Угадай по смайликам».</p>
               )}
             </>
           )}

@@ -245,10 +245,6 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 }
 .cover img { width:100%; height:100%; object-fit:cover; }
 .cover-ph { font-size:96px; font-weight:800; color:var(--ember); line-height:1; display:flex; }
-.emoji-puzzle {
-  font-size:52px; line-height:1.15; text-align:center; padding:12px;
-  display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:2px;
-}
 
 .stage-label { font-size:13px; font-style:italic; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-60); }
 .stage-label b { color:var(--flame); font-size:20px; font-style:normal; letter-spacing:0; }
