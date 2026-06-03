@@ -161,6 +161,33 @@ export const PACKS = [
       { title: 'Тутанхамон', artist: 'Nautilus Pompilius' },
     ],
   },
+  {
+    // Пак для режима «Смайлики»: песни угадывают по эмодзи (поле emoji), без звука.
+    // Работает и как обычный пак — заголовки известные, iTunes их находит.
+    id: 'emoji-quiz',
+    name: 'Угадай по смайликам',
+    icon: 'smile',
+    songs: [
+      { title: 'Shape of You', artist: 'Ed Sheeran', emoji: '🔷👉' },
+      { title: 'Blinding Lights', artist: 'The Weeknd', emoji: '😵‍💫💡' },
+      { title: 'Bad Guy', artist: 'Billie Eilish', emoji: '😈👦' },
+      { title: 'Rolling in the Deep', artist: 'Adele', emoji: '🎲🌊' },
+      { title: 'Believer', artist: 'Imagine Dragons', emoji: '🙏🧎' },
+      { title: 'Uptown Funk', artist: 'Mark Ronson Bruno Mars', emoji: '⬆️🏙️🕺' },
+      { title: 'Smells Like Teen Spirit', artist: 'Nirvana', emoji: '👃🧑‍🎤👻' },
+      { title: 'Hey Jude', artist: 'The Beatles', emoji: '👋🧔' },
+      { title: 'Zombie', artist: 'The Cranberries', emoji: '🧟‍♂️' },
+      { title: 'Seven Nation Army', artist: 'The White Stripes', emoji: '7️⃣🌍🪖' },
+      { title: 'Highway to Hell', artist: 'AC/DC', emoji: '🛣️😈🔥' },
+      { title: 'Sweet Child O Mine', artist: 'Guns N Roses', emoji: '🍬👶' },
+      { title: 'Photograph', artist: 'Ed Sheeran', emoji: '📷' },
+      { title: 'Castle on the Hill', artist: 'Ed Sheeran', emoji: '🏰⛰️' },
+      { title: 'Тает лёд', artist: 'Грибы', emoji: '❄️➡️💧' },
+      { title: 'Розовое вино', artist: 'Элджей Feduk', emoji: '🌸🍷' },
+      { title: 'Экспонат', artist: 'Ленинград', emoji: '👠🖼️' },
+      { title: 'Звезда по имени Солнце', artist: 'Кино', emoji: '⭐☀️' },
+    ],
+  },
 ];
 
 export function getPack(id) {

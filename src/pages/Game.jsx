@@ -64,9 +64,10 @@ export default function Game() {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }, [idx]);
 
-  // управление аудио (два пути: обычный <audio> и движок «Эволюция трека»)
+  // управление аудио (обычный <audio> / движок «Эволюция» / без звука для «Смайликов»)
   useEffect(() => {
     if (!round || !current) return;
+    if (mode === 'emoji') return; // режим смайликов — без звука
 
     if (mode === 'evolution') {
       const engine = getEngine();
@@ -212,18 +213,20 @@ export default function Game() {
 
       <header className="game-head">
         <span className="round-counter">Раунд {current.index + 1} / {lobby.totalRounds}</span>
-        <div className="vol">
-          <button className="vol-btn" onClick={toggleMute} aria-label="Громкость">
-            <Icon name={volume === 0 ? 'volumeX' : 'volume'} size={18} />
-          </button>
-          <input
-            className="vol-slider"
-            type="range" min="0" max="1" step="0.01"
-            value={volume}
-            onChange={(e) => setVolume(parseFloat(e.target.value))}
-            aria-label="Уровень громкости"
-          />
-        </div>
+        {mode !== 'emoji' && (
+          <div className="vol">
+            <button className="vol-btn" onClick={toggleMute} aria-label="Громкость">
+              <Icon name={volume === 0 ? 'volumeX' : 'volume'} size={18} />
+            </button>
+            <input
+              className="vol-slider"
+              type="range" min="0" max="1" step="0.01"
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              aria-label="Уровень громкости"
+            />
+          </div>
+        )}
         <div className="scores">
           {playerList.map((p) => (
             <span key={p.uid} className="score-chip">
@@ -234,9 +237,11 @@ export default function Game() {
       </header>
 
       <main className="game-main">
-        {/* Обложка скрыта во время угадывания */}
+        {/* Обложка скрыта во время угадывания; в режиме смайликов — эмодзи-ребус */}
         <div className="cover">
-          {reveal && round.artwork ? (
+          {mode === 'emoji' ? (
+            <div className="emoji-puzzle">{round.emoji}</div>
+          ) : reveal && round.artwork ? (
             <img src={round.artwork} alt="" />
           ) : (
             <div className="cover-ph">{reveal ? <Icon name="music" size={88} /> : '?'}</div>

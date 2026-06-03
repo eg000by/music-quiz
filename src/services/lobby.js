@@ -196,29 +196,59 @@ async function buildRounds(songs, n) {
   });
 }
 
-// Хост запускает игру: собирает общий пул из паков всех игроков, грузит треки и
-// переводит лобби в playing.
+// Раунды для режима «Смайлики»: звук не нужен, угадываем по эмодзи. iTunes не дёргаем.
+function buildEmojiRounds(songs, n) {
+  const pool = shuffle(songs).slice(0, n);
+  const allTitles = songs.map((s) => s.title);
+  return pool.map((s) => {
+    const distractors = shuffle(allTitles.filter((x) => x !== s.title)).slice(0, 3);
+    const options = shuffle([s.title, ...distractors]);
+    return {
+      title: s.title,
+      artist: s.artist,
+      emoji: s.emoji,
+      artwork: null,
+      previewUrl: null,
+      offset: 0,
+      options,
+      correctIndex: options.indexOf(s.title),
+    };
+  });
+}
+
+// Хост запускает игру: собирает общий пул из паков всех игроков, грузит треки (или
+// строит эмодзи-раунды) и переводит лобби в playing.
 export async function startGame(code) {
   const ref = doc(db, 'lobbies', code);
   const pre = await getDoc(ref);
   const lobby = pre.data();
+  const isEmoji = (lobby.mode || 'normal') === 'emoji';
   const songs = combinedSongs(lobby);
-  if (songs.length < 1) {
-    throw new Error('Выберите хотя бы один пак музыки');
+  const pool = isEmoji ? songs.filter((s) => s.emoji) : songs;
+  if (pool.length < 1) {
+    throw new Error(isEmoji
+      ? 'Для режима «Смайлики» выберите пак со смайликами'
+      : 'Выберите хотя бы один пак музыки');
   }
   const totalRounds = lobby.roundCount || DEFAULT_ROUNDS;
 
   await updateDoc(ref, { status: 'loading' });
 
   let rounds;
-  try {
-    rounds = await buildRounds(songs, totalRounds);
-  } catch {
-    rounds = [];
+  if (isEmoji) {
+    rounds = buildEmojiRounds(pool, totalRounds);
+  } else {
+    try {
+      rounds = await buildRounds(pool, totalRounds);
+    } catch {
+      rounds = [];
+    }
   }
   if (rounds.length < 1) {
     await updateDoc(ref, { status: 'waiting' });
-    throw new Error('Не удалось загрузить треки из iTunes. Проверь интернет и попробуй снова.');
+    throw new Error(isEmoji
+      ? 'Не удалось собрать раунды со смайликами'
+      : 'Не удалось загрузить треки из iTunes. Проверь интернет и попробуй снова.');
   }
 
   // сбрасываем счёт игроков
