@@ -69,7 +69,8 @@ export default function Results() {
     .sort((a, b) => b.score - a.score);
 
   const winner = players.length > 0 ? players[0] : null;
-  const tie = players.length === 2 && players[0].score === players[1].score;
+  // ничья, если за первое место несколько игроков с одинаковым счётом
+  const tie = players.length > 1 && players.filter((p) => p.score === winner.score).length > 1;
 
   const handleAgain = async () => {
     await resetLobby(code).catch(() => {});

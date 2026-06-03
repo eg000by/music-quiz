@@ -3,7 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { getPack, PACKS } from '../data/packs';
-import { setReady, startGame, leaveLobby, setLobbyPack, setLobbyRounds } from '../services/lobby';
+import {
+  setReady,
+  startGame,
+  leaveLobby,
+  setLobbyRounds,
+  togglePlayerPack,
+  combinedSongs,
+} from '../services/lobby';
 import { syncClock } from '../services/clock';
 import Icon from '../components/Icon';
 
@@ -49,11 +56,19 @@ export default function Lobby() {
   const isHost = lobby.hostId === user.uid;
   const players = lobby.playerOrder.map((uid) => lobby.players[uid]).filter(Boolean);
   const me = lobby.players[user.uid];
-  const pack = getPack(lobby.packId);
+  const myPacks = me?.packs || [];
   const roundCount = lobby.roundCount || 8;
   const everyoneReady = players.length >= 1 && players.every((p) => p.ready);
 
+  // объединённый пул паков всех игроков
+  const selectedPackIds = new Set();
+  players.forEach((p) => (p.packs || []).forEach((id) => selectedPackIds.add(id)));
+  const poolSongs = combinedSongs(lobby).length;
+  const hasPacks = selectedPackIds.size > 0;
+
   const toggleReady = () => setReady(code, user.uid, !me.ready).catch(() => {});
+  const toggleMyPack = (packId) =>
+    togglePlayerPack(code, user.uid, packId, !myPacks.includes(packId)).catch(() => {});
 
   const handleLeave = async () => {
     await leaveLobby(code, user.uid).catch(() => {});
@@ -64,7 +79,7 @@ export default function Lobby() {
     setError('');
     setStarting(true);
     try {
-      await startGame(code, pack, roundCount);
+      await startGame(code);
     } catch (e) {
       setError(e.message || 'Ошибка запуска');
       setStarting(false);
@@ -76,52 +91,70 @@ export default function Lobby() {
       <div className="card lobby-card">
         <span className="eyebrow">Код лобби</span>
         <div className="code-display">{lobby.code}</div>
-        <p className="muted pack-line">{pack && <Icon name={pack.icon} size={15} />} {lobby.packName} · {roundCount} раундов</p>
-
-        {isHost ? (
-          <div className="lobby-settings">
-            <span className="settings-label">Пак музыки</span>
-            <div className="pack-grid">
-              {PACKS.map((p) => (
-                <button
-                  key={p.id}
-                  className={`pack ${lobby.packId === p.id ? 'pack-active' : ''}`}
-                  onClick={() => setLobbyPack(code, p).catch(() => {})}
-                >
-                  <span className="pack-emoji"><Icon name={p.icon} size={21} /></span>
-                  <span className="pack-name">{p.name}</span>
-                  <span className="pack-count">{p.songs.length} песен</span>
-                </button>
-              ))}
-            </div>
-
-            <span className="settings-label">Раундов</span>
-            <div className="rounds-row">
-              {ROUND_OPTIONS.map((n) => (
-                <button
-                  key={n}
-                  className={`round-opt ${roundCount === n ? 'on' : ''}`}
-                  onClick={() => setLobbyRounds(code, n).catch(() => {})}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className="muted">Пак и число раундов выбирает хост</p>
-        )}
+        <p className="muted pack-line">
+          {hasPacks
+            ? `В игре: ${poolSongs} песен · ${roundCount} раундов`
+            : `Выберите паки · ${roundCount} раундов`}
+        </p>
 
         <div className="players-list">
           {players.map((p) => (
             <div key={p.uid} className="player-row">
               {p.photo ? <img src={p.photo} alt="" className="avatar" /> : <div className="avatar ph">{p.name[0]}</div>}
-              <span className="player-name">{p.name}{p.uid === lobby.hostId && <Icon name="crown" size={15} className="host-mark" />}</span>
+              <div className="player-main">
+                <span className="player-name">
+                  {p.name}{p.uid === lobby.hostId && <Icon name="crown" size={15} className="host-mark" />}
+                </span>
+                <div className="player-packs">
+                  {(p.packs || []).length === 0
+                    ? <span className="muted no-packs">паки не выбраны</span>
+                    : (p.packs || []).map((id) => {
+                        const pk = getPack(id);
+                        return pk ? (
+                          <span key={id} className="pack-chip"><Icon name={pk.icon} size={12} /> {pk.name}</span>
+                        ) : null;
+                      })}
+                </div>
+              </div>
               <span className={`ready-badge ${p.ready ? 'on' : ''}`}>{p.ready ? 'готов' : 'не готов'}</span>
             </div>
           ))}
-          {players.length < 2 && (
-            <div className="player-row empty">Ждём второго игрока…</div>
+          {players.length < 4 && (
+            <div className="player-row empty">Ждём игроков… (до 4)</div>
+          )}
+        </div>
+
+        <div className="lobby-settings">
+          <span className="settings-label">Мои паки (объединяются у всех)</span>
+          <div className="pack-grid">
+            {PACKS.map((p) => (
+              <button
+                key={p.id}
+                className={`pack ${myPacks.includes(p.id) ? 'pack-active' : ''}`}
+                onClick={() => toggleMyPack(p.id)}
+              >
+                <span className="pack-emoji"><Icon name={p.icon} size={21} /></span>
+                <span className="pack-name">{p.name}</span>
+                <span className="pack-count">{p.songs.length} песен</span>
+              </button>
+            ))}
+          </div>
+
+          {isHost && (
+            <>
+              <span className="settings-label">Раундов</span>
+              <div className="rounds-row">
+                {ROUND_OPTIONS.map((n) => (
+                  <button
+                    key={n}
+                    className={`round-opt ${roundCount === n ? 'on' : ''}`}
+                    onClick={() => setLobbyRounds(code, n).catch(() => {})}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
@@ -133,11 +166,12 @@ export default function Lobby() {
           <button
             className="btn btn-primary"
             onClick={handleStart}
-            disabled={!everyoneReady || starting}
+            disabled={!everyoneReady || starting || !hasPacks}
           >
             {starting ? 'Загрузка треков…' : <><Icon name="play" size={18} /> Начать игру</>}
           </button>
         )}
+        {isHost && !hasPacks && <p className="muted">Нужно выбрать хотя бы один пак</p>}
         {!isHost && <p className="muted">Хост запустит игру, когда все будут готовы</p>}
 
         {error && <div className="error">{error}</div>}

@@ -23,8 +23,10 @@ import {
 import { db } from '../firebase';
 import { searchTrack } from './itunes';
 import { serverNow } from './clock';
+import { getPack } from '../data/packs';
 
 const DEFAULT_ROUNDS = 8;
+const MAX_PLAYERS = 4;
 
 // Лобби живёт ограниченное время. Партия идёт минуты, поэтому всё, что старше
 // нескольких часов — это заброшенные/завершённые лобби, которые можно удалять.
@@ -63,7 +65,25 @@ function playerObj(user) {
     photo: user.photoURL || null,
     score: 0,
     ready: false,
+    packs: [], // предпочитаемые паки этого игрока (объединяются в общий пул игры)
   };
+}
+
+// Собирает общий пул песен из паков, выбранных всеми игроками (объединение, без дублей).
+export function combinedSongs(lobby) {
+  const ids = new Set();
+  Object.values(lobby?.players || {}).forEach((p) => {
+    (p.packs || []).forEach((id) => ids.add(id));
+  });
+  const songs = [];
+  const seen = new Set();
+  [...ids].map(getPack).filter(Boolean).forEach((pk) => {
+    pk.songs.forEach((s) => {
+      const key = `${s.title}|${s.artist}`.toLowerCase();
+      if (!seen.has(key)) { seen.add(key); songs.push(s); }
+    });
+  });
+  return songs;
 }
 
 export async function createLobby(user, pack) {
@@ -78,9 +98,7 @@ export async function createLobby(user, pack) {
       hostId: user.uid,
       hostName: user.displayName || 'Игрок',
       status: 'waiting', // waiting | loading | playing | finished
-      packId: pack.id,
-      packName: pack.name,
-      players: { [user.uid]: { ...playerObj(user), ready: true } },
+      players: { [user.uid]: { ...playerObj(user), ready: true, packs: pack ? [pack.id] : [] } },
       playerOrder: [user.uid],
       roundCount: DEFAULT_ROUNDS,
       totalRounds: 0,
@@ -103,7 +121,7 @@ export async function joinLobby(code, user) {
   const players = data.players || {};
   const already = !!players[user.uid];
   if (!already && data.status !== 'waiting') throw new Error('Игра уже началась');
-  if (!already && Object.keys(players).length >= 2) throw new Error('Лобби заполнено (2 игрока)');
+  if (!already && Object.keys(players).length >= MAX_PLAYERS) throw new Error(`Лобби заполнено (${MAX_PLAYERS} игрока)`);
   if (!already) {
     await updateDoc(ref, {
       [`players.${user.uid}`]: playerObj(user),
@@ -126,9 +144,12 @@ export async function setReady(code, uid, ready) {
   await updateDoc(doc(db, 'lobbies', code), { [`players.${uid}.ready`]: ready });
 }
 
-// Хост меняет пак в лобби до старта игры.
-export async function setLobbyPack(code, pack) {
-  await updateDoc(doc(db, 'lobbies', code), { packId: pack.id, packName: pack.name });
+// Игрок добавляет/убирает свой предпочитаемый пак. Паки всех игроков объединяются
+// в общий пул для игры.
+export async function togglePlayerPack(code, uid, packId, selected) {
+  await updateDoc(doc(db, 'lobbies', code), {
+    [`players.${uid}.packs`]: selected ? arrayUnion(packId) : arrayRemove(packId),
+  });
 }
 
 // Хост меняет число раундов в лобби до старта игры.
@@ -136,8 +157,8 @@ export async function setLobbyRounds(code, n) {
   await updateDoc(doc(db, 'lobbies', code), { roundCount: n });
 }
 
-async function buildRounds(pack, n) {
-  const pool = shuffle(pack.songs);
+async function buildRounds(songs, n) {
+  const pool = shuffle(songs);
   const resolved = [];
   for (const song of pool) {
     if (resolved.length >= n) break;
@@ -151,7 +172,7 @@ async function buildRounds(pack, n) {
     }
   }
 
-  const allTitles = pack.songs.map((s) => s.title);
+  const allTitles = songs.map((s) => s.title);
   return resolved.map((t) => {
     const correctTitle = t.packTitle;
     const distractors = shuffle(allTitles.filter((x) => x !== correctTitle)).slice(0, 3);
@@ -168,14 +189,23 @@ async function buildRounds(pack, n) {
   });
 }
 
-// Хост запускает игру: грузит треки и переводит лобби в playing.
-export async function startGame(code, pack, totalRounds = DEFAULT_ROUNDS) {
+// Хост запускает игру: собирает общий пул из паков всех игроков, грузит треки и
+// переводит лобби в playing.
+export async function startGame(code) {
   const ref = doc(db, 'lobbies', code);
+  const pre = await getDoc(ref);
+  const lobby = pre.data();
+  const songs = combinedSongs(lobby);
+  if (songs.length < 1) {
+    throw new Error('Выберите хотя бы один пак музыки');
+  }
+  const totalRounds = lobby.roundCount || DEFAULT_ROUNDS;
+
   await updateDoc(ref, { status: 'loading' });
 
   let rounds;
   try {
-    rounds = await buildRounds(pack, totalRounds);
+    rounds = await buildRounds(songs, totalRounds);
   } catch {
     rounds = [];
   }

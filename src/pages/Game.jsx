@@ -217,8 +217,8 @@ export default function Game() {
         {!reveal && myAnswer && (
           <p className="muted waiting">
             {answerCount >= playerCount && playerCount > 0
-              ? 'Оба ответили — ещё можно передумать!'
-              : 'Ответ принят, можно поменять. Ждём соперника…'}
+              ? 'Все ответили — ещё можно передумать!'
+              : 'Ответ принят, можно поменять. Ждём остальных…'}
           </p>
         )}
 
