@@ -8,6 +8,7 @@ import {
   startGame,
   leaveLobby,
   setLobbyRounds,
+  setLobbyMode,
   togglePlayerPack,
   combinedSongs,
 } from '../services/lobby';
@@ -15,6 +16,10 @@ import { syncClock } from '../services/clock';
 import Icon from '../components/Icon';
 
 const ROUND_OPTIONS = [5, 8, 10];
+const MODES = [
+  { id: 'normal', label: 'Обычный' },
+  { id: 'evolution', label: 'Эволюция трека' },
+];
 
 export default function Lobby() {
   const { code } = useParams();
@@ -58,6 +63,7 @@ export default function Lobby() {
   const me = lobby.players[user.uid];
   const myPacks = me?.packs || [];
   const roundCount = lobby.roundCount || 8;
+  const mode = lobby.mode || 'normal';
   const everyoneReady = players.length >= 1 && players.every((p) => p.ready);
 
   // объединённый пул паков всех игроков
@@ -95,6 +101,7 @@ export default function Lobby() {
           {hasPacks
             ? `В игре: ${poolSongs} песен · ${roundCount} раундов`
             : `Выберите паки · ${roundCount} раундов`}
+          {mode === 'evolution' && ' · режим: Эволюция трека'}
         </p>
 
         <div className="players-list">
@@ -154,6 +161,22 @@ export default function Lobby() {
                   </button>
                 ))}
               </div>
+
+              <span className="settings-label">Режим</span>
+              <div className="rounds-row">
+                {MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    className={`round-opt mode-opt ${mode === m.id ? 'on' : ''}`}
+                    onClick={() => setLobbyMode(code, m.id).catch(() => {})}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              {mode === 'evolution' && (
+                <p className="muted mode-hint">Трек звучит глухо и проясняется к концу раунда — угадывай раньше.</p>
+              )}
             </>
           )}
         </div>

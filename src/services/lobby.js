@@ -101,6 +101,8 @@ export async function createLobby(user, pack) {
       players: { [user.uid]: { ...playerObj(user), ready: true, packs: pack ? [pack.id] : [] } },
       playerOrder: [user.uid],
       roundCount: DEFAULT_ROUNDS,
+      mode: 'normal', // normal | evolution
+
       totalRounds: 0,
       rounds: [],
       current: null,
@@ -155,6 +157,11 @@ export async function togglePlayerPack(code, uid, packId, selected) {
 // Хост меняет число раундов в лобби до старта игры.
 export async function setLobbyRounds(code, n) {
   await updateDoc(doc(db, 'lobbies', code), { roundCount: n });
+}
+
+// Хост меняет режим игры (обычный / эволюция трека) до старта.
+export async function setLobbyMode(code, mode) {
+  await updateDoc(doc(db, 'lobbies', code), { mode });
 }
 
 async function buildRounds(songs, n) {

@@ -5,6 +5,7 @@ import { useLobby } from '../hooks/useLobby';
 import { submitAnswer, revealRound, advanceRound } from '../services/lobby';
 import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed, BOTH_ANSWERED_EXTRA_MS, REVEAL_MS } from '../services/scoring';
 import { serverNow, syncClock } from '../services/clock';
+import { EvolutionPlayer, preload as preloadBuffer } from '../services/audioEngine';
 import Icon from '../components/Icon';
 
 export default function Game() {
@@ -14,6 +15,7 @@ export default function Game() {
   const navigate = useNavigate();
 
   const audioRef = useRef(null);
+  const engineRef = useRef(null);
   const [now, setNow] = useState(serverNow());
   const [myAnswer, setMyAnswer] = useState(null);
   const [needTap, setNeedTap] = useState(false);
@@ -28,6 +30,12 @@ export default function Game() {
   const isHost = lobby?.hostId === user?.uid;
   const phase = current?.phase;
   const idx = current?.index;
+  const mode = lobby?.mode || 'normal';
+
+  const getEngine = () => {
+    if (!engineRef.current) engineRef.current = new EvolutionPlayer();
+    return engineRef.current;
+  };
 
   // тикающие часы для прогресс-бара и этапов (серверное время — одинаково у обоих игроков)
   useEffect(() => {
@@ -35,11 +43,15 @@ export default function Game() {
     return () => clearInterval(id);
   }, []);
 
-  // громкость — у каждого своя, применяем к аудио и сохраняем в браузере
+  // громкость — у каждого своя, применяем к аудио/движку и сохраняем в браузере
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
+    if (engineRef.current) engineRef.current.setVolume(volume);
     localStorage.setItem('mq_volume', String(volume));
   }, [volume]);
+
+  // освобождаем аудио-движок при выходе из игры
+  useEffect(() => () => { if (engineRef.current) engineRef.current.dispose(); }, []);
 
   // измеряем смещение часов этого устройства относительно сервера для честного тайминга
   useEffect(() => {
@@ -52,11 +64,29 @@ export default function Game() {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }, [idx]);
 
-  // управление аудио
+  // управление аудио (два пути: обычный <audio> и движок «Эволюция трека»)
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !round || !current) return;
+    if (!round || !current) return;
 
+    if (mode === 'evolution') {
+      const engine = getEngine();
+      if (phase === 'playing') {
+        engine.setVolume(volume);
+        engine.play(round.previewUrl, {
+          elapsedMs: serverNow() - current.startedAt,
+          roundMs: ROUND_MS,
+          offsetSec: round.offset,
+        }).then((ok) => setNeedTap(!ok));
+      } else if (phase === 'reveal') {
+        engine.reveal();
+      } else {
+        engine.stop();
+      }
+      return;
+    }
+
+    const audio = audioRef.current;
+    if (!audio) return;
     if (phase === 'playing') {
       if (audio.src !== round.previewUrl) {
         audio.src = round.previewUrl;
@@ -75,7 +105,14 @@ export default function Game() {
       audio.pause();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, phase]);
+  }, [idx, phase, mode]);
+
+  // в режиме эволюции заранее декодируем следующий трек, чтобы раунд начался без паузы
+  useEffect(() => {
+    if (mode !== 'evolution' || !lobby?.rounds) return;
+    const next = lobby.rounds[idx + 1];
+    if (next?.previewUrl) preloadBuffer(next.previewUrl).catch(() => {});
+  }, [idx, mode, lobby?.rounds]);
 
   // переход на экран результатов
   useEffect(() => {
@@ -149,6 +186,14 @@ export default function Game() {
   };
 
   const resumeAudio = () => {
+    if (mode === 'evolution') {
+      getEngine().play(round.previewUrl, {
+        elapsedMs: serverNow() - current.startedAt,
+        roundMs: ROUND_MS,
+        offsetSec: round.offset,
+      }).then((ok) => setNeedTap(!ok));
+      return;
+    }
     const audio = audioRef.current;
     if (!audio) return;
     audio.play().then(() => setNeedTap(false)).catch(() => {});
@@ -213,6 +258,11 @@ export default function Game() {
                 <div key={i} className="marker" style={{ left: `${(s.maxMs / ROUND_MS) * 100}%` }} />
               ))}
             </div>
+            {mode === 'evolution' && (
+              <div className="muted clarity-hint">
+                <Icon name="volume" size={14} /> Эволюция трека · чёткость {Math.round(progress)}%
+              </div>
+            )}
           </>
         )}
 

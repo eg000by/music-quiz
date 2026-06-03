@@ -151,6 +151,10 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 }
 .round-opt:hover { background:var(--paper-press); }
 .round-opt.on { background:var(--ink); color:var(--paper-pure); }
+.mode-opt { font-size:13px; padding:11px 6px; }
+.mode-hint { text-align:left; font-size:12px; margin-top:6px; }
+.clarity-hint { display:flex; align-items:center; gap:6px; justify-content:center; font-size:12px; }
+.clarity-hint svg { color:var(--ember); }
 
 /* ---------- player packs (lobby) ---------- */
 .player-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; text-align:left; }
