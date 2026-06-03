@@ -212,12 +212,20 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 
 /* ---------- game ---------- */
 .game { display:flex; flex-direction:column; }
-.game-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:10px; }
+.game-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:10px 14px; flex-wrap:wrap; }
 .round-counter {
   color:var(--ink-60); font-size:11px; font-style:italic; font-weight:500;
   letter-spacing:.16em; text-transform:uppercase; white-space:nowrap;
 }
 .scores { display:flex; gap:7px; flex-wrap:wrap; justify-content:flex-end; }
+
+/* ---------- volume ---------- */
+.vol { display:flex; align-items:center; gap:7px; }
+.vol-btn {
+  background:none; border:none; cursor:pointer; color:var(--ink);
+  display:flex; align-items:center; padding:2px;
+}
+.vol-slider { width:84px; accent-color:var(--flame); cursor:pointer; }
 .score-chip {
   background:var(--paper-pure); border:1.5px solid var(--ink); border-radius:999px;
   padding:5px 11px; font-size:13px; font-weight:600;

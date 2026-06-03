@@ -17,6 +17,11 @@ export default function Game() {
   const [now, setNow] = useState(serverNow());
   const [myAnswer, setMyAnswer] = useState(null);
   const [needTap, setNeedTap] = useState(false);
+  const [volume, setVolume] = useState(() => {
+    const v = parseFloat(localStorage.getItem('mq_volume'));
+    return Number.isFinite(v) ? v : 1;
+  });
+  const prevVolRef = useRef(volume || 1);
 
   const current = lobby?.current;
   const round = current ? lobby?.rounds?.[current.index] : null;
@@ -29,6 +34,12 @@ export default function Game() {
     const id = setInterval(() => setNow(serverNow()), 100);
     return () => clearInterval(id);
   }, []);
+
+  // громкость — у каждого своя, применяем к аудио и сохраняем в браузере
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+    localStorage.setItem('mq_volume', String(volume));
+  }, [volume]);
 
   // измеряем смещение часов этого устройства относительно сервера для честного тайминга
   useEffect(() => {
@@ -51,6 +62,7 @@ export default function Game() {
         audio.src = round.previewUrl;
       }
       const start = () => {
+        audio.volume = volume;
         const target = round.offset + Math.max(0, (serverNow() - current.startedAt) / 1000);
         try { audio.currentTime = target; } catch { /* ignore */ }
         audio.play().then(() => setNeedTap(false)).catch(() => setNeedTap(true));
@@ -142,12 +154,31 @@ export default function Game() {
     audio.play().then(() => setNeedTap(false)).catch(() => {});
   };
 
+  const toggleMute = () => {
+    setVolume((v) => {
+      if (v > 0) { prevVolRef.current = v; return 0; }
+      return prevVolRef.current || 1;
+    });
+  };
+
   return (
     <div className="screen game">
       <audio ref={audioRef} preload="auto" />
 
       <header className="game-head">
         <span className="round-counter">Раунд {current.index + 1} / {lobby.totalRounds}</span>
+        <div className="vol">
+          <button className="vol-btn" onClick={toggleMute} aria-label="Громкость">
+            <Icon name={volume === 0 ? 'volumeX' : 'volume'} size={18} />
+          </button>
+          <input
+            className="vol-slider"
+            type="range" min="0" max="1" step="0.01"
+            value={volume}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
+            aria-label="Уровень громкости"
+          />
+        </div>
         <div className="scores">
           {playerList.map((p) => (
             <span key={p.uid} className="score-chip">
