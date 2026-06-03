@@ -12,6 +12,7 @@ import {
   updateDoc,
   deleteDoc,
   onSnapshot,
+  runTransaction,
   serverTimestamp,
   Timestamp,
   increment,
@@ -81,6 +82,7 @@ export async function createLobby(user, pack) {
       packName: pack.name,
       players: { [user.uid]: { ...playerObj(user), ready: true } },
       playerOrder: [user.uid],
+      roundCount: DEFAULT_ROUNDS,
       totalRounds: 0,
       rounds: [],
       current: null,
@@ -122,6 +124,16 @@ export function subscribeLobby(code, cb, onError) {
 
 export async function setReady(code, uid, ready) {
   await updateDoc(doc(db, 'lobbies', code), { [`players.${uid}.ready`]: ready });
+}
+
+// Хост меняет пак в лобби до старта игры.
+export async function setLobbyPack(code, pack) {
+  await updateDoc(doc(db, 'lobbies', code), { packId: pack.id, packName: pack.name });
+}
+
+// Хост меняет число раундов в лобби до старта игры.
+export async function setLobbyRounds(code, n) {
+  await updateDoc(doc(db, 'lobbies', code), { roundCount: n });
 }
 
 async function buildRounds(pack, n) {
@@ -192,16 +204,30 @@ export async function startGame(code, pack, totalRounds = DEFAULT_ROUNDS) {
   });
 }
 
+// Игрок отправляет (или меняет) свой ответ. Очки здесь не начисляем — ответ можно
+// поменять, поэтому итог считаем один раз на фазе reveal.
 export async function submitAnswer(code, uid, answer) {
   await updateDoc(doc(db, 'lobbies', code), {
     [`answers.${uid}`]: answer,
-    [`players.${uid}.score`]: increment(answer.points),
   });
 }
 
-// Хост: показать правильный ответ (фаза reveal).
+// Хост: показать правильный ответ (фаза reveal) и начислить очки по финальным ответам.
+// Транзакция гарантирует, что очки начислятся ровно один раз, даже если два таймера
+// хоста (полное время раунда и «ответили оба + пауза») сработают почти одновременно.
 export async function revealRound(code) {
-  await updateDoc(doc(db, 'lobbies', code), { 'current.phase': 'reveal' });
+  const ref = doc(db, 'lobbies', code);
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.data();
+    if (!data || !data.current || data.current.phase !== 'playing') return;
+    const answers = data.answers || {};
+    const updates = { 'current.phase': 'reveal' };
+    Object.entries(answers).forEach(([uid, a]) => {
+      if (a && a.points) updates[`players.${uid}.score`] = increment(a.points);
+    });
+    tx.update(ref, updates);
+  });
 }
 
 // Хост: перейти к следующему раунду либо завершить игру.

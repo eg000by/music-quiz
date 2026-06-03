@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { submitAnswer, revealRound, advanceRound } from '../services/lobby';
-import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed } from '../services/scoring';
+import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed, BOTH_ANSWERED_EXTRA_MS, REVEAL_MS } from '../services/scoring';
 import { serverNow, syncClock } from '../services/clock';
 import Icon from '../components/Icon';
 
@@ -57,6 +57,8 @@ export default function Game() {
       };
       if (audio.readyState >= 1) start();
       else audio.onloadedmetadata = start;
+    } else if (phase === 'reveal') {
+      // на показе ответа песня доигрывает ещё пару секунд, не обрываясь резко
     } else {
       audio.pause();
     }
@@ -81,17 +83,18 @@ export default function Game() {
       const remaining = ROUND_MS - (serverNow() - current.startedAt) + 300;
       t = setTimeout(() => revealRound(code).catch(() => {}), Math.max(0, remaining));
     } else if (phase === 'reveal') {
-      t = setTimeout(() => advanceRound(code).catch(() => {}), 4000);
+      t = setTimeout(() => advanceRound(code).catch(() => {}), REVEAL_MS);
     }
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHost, idx, phase, lobby?.status]);
 
-  // ХОСТ: показать ответ раньше, если ответили все
+  // ХОСТ: когда ответили все — даём ещё несколько секунд (можно поменять ответ),
+  // затем показываем правильный ответ.
   useEffect(() => {
     if (!isHost || !current || phase !== 'playing') return;
     if (answerCount >= playerCount && playerCount > 0) {
-      const t = setTimeout(() => revealRound(code).catch(() => {}), 500);
+      const t = setTimeout(() => revealRound(code).catch(() => {}), BOTH_ANSWERED_EXTRA_MS);
       return () => clearTimeout(t);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,7 +122,8 @@ export default function Game() {
   const playerList = lobby.playerOrder.map((uid) => lobby.players[uid]).filter(Boolean);
 
   const pick = (i) => {
-    if (myAnswer || reveal) return;
+    if (reveal) return;
+    if (myAnswer && myAnswer.choice === i) return; // тот же вариант — ничего не меняем
     const e = serverNow() - current.startedAt;
     const correct = i === round.correctIndex;
     const ans = {
@@ -202,7 +206,7 @@ export default function Game() {
                 key={i}
                 className={cls}
                 onClick={(e) => { e.currentTarget.blur(); pick(i); }}
-                disabled={!!myAnswer || reveal}
+                disabled={reveal}
               >
                 {opt}
               </button>
@@ -211,7 +215,11 @@ export default function Game() {
         </div>
 
         {!reveal && myAnswer && (
-          <p className="muted waiting">Ответ принят. Ждём соперника…</p>
+          <p className="muted waiting">
+            {answerCount >= playerCount && playerCount > 0
+              ? 'Оба ответили — ещё можно передумать!'
+              : 'Ответ принят, можно поменять. Ждём соперника…'}
+          </p>
         )}
 
         {reveal && (

@@ -136,6 +136,22 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 .pack-name { font-weight:600; font-size:14px; line-height:1.15; }
 .pack-count { font-size:12px; color:var(--ink-60); }
 
+/* ---------- lobby settings (host) ---------- */
+.lobby-settings { width:100%; }
+.lobby-settings .pack-grid { margin:8px 0 4px; }
+.settings-label {
+  display:block; text-align:left; font-size:11px; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--ink-60); margin-top:10px;
+}
+.rounds-row { display:flex; gap:8px; margin:8px 0 4px; }
+.round-opt {
+  flex:1; padding:11px 0; background:var(--paper-pure); border:1.5px solid var(--ink);
+  border-radius:2px; font-weight:700; font-size:16px; color:var(--ink); cursor:pointer;
+  transition:background-color var(--dur-fast) var(--ease);
+}
+.round-opt:hover { background:var(--paper-press); }
+.round-opt.on { background:var(--ink); color:var(--paper-pure); }
+
 /* ---------- code input ---------- */
 .code-input {
   width:100%; margin-top:12px; padding:16px;

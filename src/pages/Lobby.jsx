@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
-import { getPack } from '../data/packs';
-import { setReady, startGame, leaveLobby } from '../services/lobby';
+import { getPack, PACKS } from '../data/packs';
+import { setReady, startGame, leaveLobby, setLobbyPack, setLobbyRounds } from '../services/lobby';
 import { syncClock } from '../services/clock';
 import Icon from '../components/Icon';
+
+const ROUND_OPTIONS = [5, 8, 10];
 
 export default function Lobby() {
   const { code } = useParams();
@@ -48,6 +50,7 @@ export default function Lobby() {
   const players = lobby.playerOrder.map((uid) => lobby.players[uid]).filter(Boolean);
   const me = lobby.players[user.uid];
   const pack = getPack(lobby.packId);
+  const roundCount = lobby.roundCount || 8;
   const everyoneReady = players.length >= 1 && players.every((p) => p.ready);
 
   const toggleReady = () => setReady(code, user.uid, !me.ready).catch(() => {});
@@ -61,7 +64,7 @@ export default function Lobby() {
     setError('');
     setStarting(true);
     try {
-      await startGame(code, pack);
+      await startGame(code, pack, roundCount);
     } catch (e) {
       setError(e.message || 'Ошибка запуска');
       setStarting(false);
@@ -73,7 +76,41 @@ export default function Lobby() {
       <div className="card lobby-card">
         <span className="eyebrow">Код лобби</span>
         <div className="code-display">{lobby.code}</div>
-        <p className="muted pack-line">{pack && <Icon name={pack.icon} size={15} />} {lobby.packName}</p>
+        <p className="muted pack-line">{pack && <Icon name={pack.icon} size={15} />} {lobby.packName} · {roundCount} раундов</p>
+
+        {isHost ? (
+          <div className="lobby-settings">
+            <span className="settings-label">Пак музыки</span>
+            <div className="pack-grid">
+              {PACKS.map((p) => (
+                <button
+                  key={p.id}
+                  className={`pack ${lobby.packId === p.id ? 'pack-active' : ''}`}
+                  onClick={() => setLobbyPack(code, p).catch(() => {})}
+                >
+                  <span className="pack-emoji"><Icon name={p.icon} size={21} /></span>
+                  <span className="pack-name">{p.name}</span>
+                  <span className="pack-count">{p.songs.length} песен</span>
+                </button>
+              ))}
+            </div>
+
+            <span className="settings-label">Раундов</span>
+            <div className="rounds-row">
+              {ROUND_OPTIONS.map((n) => (
+                <button
+                  key={n}
+                  className={`round-opt ${roundCount === n ? 'on' : ''}`}
+                  onClick={() => setLobbyRounds(code, n).catch(() => {})}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="muted">Пак и число раундов выбирает хост</p>
+        )}
 
         <div className="players-list">
           {players.map((p) => (
