@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Lobby from './pages/Lobby';
 import Game from './pages/Game';
 import Results from './pages/Results';
+import Leaderboard from './pages/Leaderboard';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -27,6 +28,7 @@ export default function App() {
       <Route path="/lobby/:code" element={<Protected><Lobby /></Protected>} />
       <Route path="/game/:code" element={<Protected><Game /></Protected>} />
       <Route path="/results/:code" element={<Protected><Results /></Protected>} />
+      <Route path="/leaderboard" element={<Protected><Leaderboard /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

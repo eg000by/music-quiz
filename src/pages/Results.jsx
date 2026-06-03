@@ -1,8 +1,10 @@
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { resetLobby } from '../services/lobby';
+import { recordGameResult } from '../services/users';
 import { STAGES } from '../services/scoring';
 import Icon from '../components/Icon';
 import trophy from '../assets/illustrations/trophy.svg';
@@ -34,6 +36,18 @@ export default function Results() {
   const { user } = useAuth();
   const { lobby, loading } = useLobby(code);
   const navigate = useNavigate();
+  const recordedRef = useRef(false);
+
+  // Записываем результат партии в таблицу лидеров (один раз за gameId).
+  useEffect(() => {
+    if (!lobby || lobby.status !== 'finished' || !lobby.gameId || recordedRef.current) return;
+    const players = lobby.players || {};
+    const me = players[user.uid];
+    if (!me) return;
+    const maxScore = Math.max(...Object.values(players).map((p) => p.score || 0));
+    recordedRef.current = true;
+    recordGameResult(user, lobby.gameId, me.score || 0, me.score === maxScore).catch(() => {});
+  }, [lobby, user]);
 
   if (loading) return <div className="screen center"><div className="spinner" /></div>;
   if (!lobby) {
@@ -96,7 +110,8 @@ export default function Results() {
           ) : (
             <p className="muted">Хост может запустить новую игру</p>
           )}
-          <button className="btn btn-secondary" onClick={() => navigate('/')}>На главную</button>
+          <button className="btn btn-secondary" onClick={() => navigate('/leaderboard')}><Icon name="crown" size={18} /> Таблица лидеров</button>
+          <button className="btn-link" onClick={() => navigate('/')}>На главную</button>
         </div>
       </div>
     </div>

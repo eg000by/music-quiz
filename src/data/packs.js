@@ -93,6 +93,23 @@ export const PACKS = [
       { title: 'Капкан', artist: 'Мот' },
     ],
   },
+  {
+    id: 'platina',
+    name: 'Платина',
+    icon: 'crown',
+    songs: [
+      { title: 'Бандана', artist: 'Платина' },
+      { title: 'Веном', artist: 'Платина' },
+      { title: 'Ламбо', artist: 'Платина' },
+      { title: 'Бэнтли, Бенз и Бумер', artist: 'Платина' },
+      { title: 'Айсберг', artist: 'Платина' },
+      { title: 'Питер Пэн', artist: 'Платина' },
+      { title: 'НЕО', artist: 'Платина' },
+      { title: 'Бритни Спирс', artist: 'Платина' },
+      { title: 'Сердце для шалав', artist: 'Платина' },
+      { title: 'Нотр-Дам Париж', artist: 'Платина' },
+    ],
+  },
 ];
 
 export function getPack(id) {

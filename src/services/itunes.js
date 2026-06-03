@@ -36,28 +36,68 @@ function hiResArtwork(url) {
   return url.replace(/\/\d+x\d+bb?\./, '/300x300bb.');
 }
 
-// Ищет один трек по { title, artist }. Возвращает лучший результат с превью или null.
-export async function searchTrack({ title, artist }) {
+function toTrack(r) {
+  return {
+    trackId: r.trackId,
+    title: r.trackName,
+    artist: r.artistName,
+    previewUrl: r.previewUrl,
+    artwork: hiResArtwork(r.artworkUrl100),
+  };
+}
+
+// Обычный поиск по строке «artist title». Возвращает массив результатов с превью.
+async function termSearch(title, artist) {
   const term = encodeURIComponent(`${artist} ${title}`.trim());
   const url = `https://itunes.apple.com/search?term=${term}&media=music&entity=song&limit=8`;
   const data = await jsonp(url);
-  const results = (data.results || []).filter((r) => r.previewUrl);
-  if (results.length === 0) return null;
+  return (data.results || []).filter((r) => r.previewUrl);
+}
 
-  // Предпочитаем результат, чьё название максимально похоже на искомое.
+// Каталог артиста через lookup по artistId. Многие треки (особенно русский андеграунд)
+// не выдаются обычным поиском, но доступны в каталоге артиста с превью. Кэшируем по
+// имени артиста, чтобы для пака из 10 песен одного исполнителя сходить в API один раз.
+const artistCatalogCache = new Map();
+
+async function getArtistCatalog(artist) {
+  const key = artist.trim().toLowerCase();
+  if (artistCatalogCache.has(key)) return artistCatalogCache.get(key);
+  let catalog = null;
+  try {
+    const aUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&entity=musicArtist&limit=1`;
+    const aData = await jsonp(aUrl);
+    const artistId = aData.results?.[0]?.artistId;
+    if (artistId) {
+      const lUrl = `https://itunes.apple.com/lookup?id=${artistId}&entity=song&limit=200`;
+      const lData = await jsonp(lUrl);
+      catalog = (lData.results || []).filter((r) => r.wrapperType === 'track' && r.previewUrl);
+    }
+  } catch {
+    catalog = null;
+  }
+  artistCatalogCache.set(key, catalog);
+  return catalog;
+}
+
+// Ищет один трек по { title, artist }. Возвращает результат с превью или null.
+// Стратегия: 1) точное совпадение названия в обычном поиске; 2) поиск в каталоге
+// артиста (находит то, что обычный поиск пропускает); 3) лучший результат поиска.
+export async function searchTrack({ title, artist }) {
   const want = title.toLowerCase();
-  results.sort((a, b) => {
-    const sa = (a.trackName || '').toLowerCase().includes(want) ? 0 : 1;
-    const sb = (b.trackName || '').toLowerCase().includes(want) ? 0 : 1;
-    return sa - sb;
-  });
+  let results;
+  try {
+    results = await termSearch(title, artist);
+  } catch {
+    results = [];
+  }
 
-  const best = results[0];
-  return {
-    trackId: best.trackId,
-    title: best.trackName,
-    artist: best.artistName,
-    previewUrl: best.previewUrl,
-    artwork: hiResArtwork(best.artworkUrl100),
-  };
+  const exact = results.find((r) => (r.trackName || '').toLowerCase().includes(want));
+  if (exact) return toTrack(exact);
+
+  const catalog = await getArtistCatalog(artist);
+  const catExact = catalog?.find((r) => (r.trackName || '').toLowerCase().includes(want));
+  if (catExact) return toTrack(catExact);
+
+  // Крайний случай — лучший результат обычного поиска (как было раньше).
+  return results.length ? toTrack(results[0]) : null;
 }

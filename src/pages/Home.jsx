@@ -49,6 +49,9 @@ export default function Home() {
       <header className="topbar">
         <div className="brand"><span className="brand-logo"><Icon name="music" size={16} /></span> Викторина</div>
         <div className="user">
+          <button className="lb-link" onClick={() => navigate('/leaderboard')} title="Таблица лидеров">
+            <Icon name="crown" size={16} /> Лидеры
+          </button>
           {user.photoURL && <img src={user.photoURL} alt="" className="avatar" />}
           <span>{user.displayName}</span>
           <button className="btn-link" onClick={() => signOut()}>выйти</button>

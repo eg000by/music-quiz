@@ -183,6 +183,7 @@ export async function startGame(code, pack, totalRounds = DEFAULT_ROUNDS) {
   await updateDoc(ref, {
     ...scoreReset,
     status: 'playing',
+    gameId: `${code}-${Date.now()}`,
     rounds,
     totalRounds: rounds.length,
     log: [],
