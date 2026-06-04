@@ -124,7 +124,7 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
   display:flex; flex-direction:column; gap:7px;
   transition:background-color var(--dur-fast) var(--ease);
 }
-.pack:hover { background:var(--paper-press); }
+@media (hover: hover) { .pack:hover { background:var(--paper-press); } }
 .pack-active { background:var(--ink); color:var(--paper-pure); }
 .pack-active .pack-count { color:rgba(251,247,241,.6); }
 .pack-emoji {
@@ -149,7 +149,7 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
   border-radius:2px; font-weight:700; font-size:16px; color:var(--ink); cursor:pointer;
   transition:background-color var(--dur-fast) var(--ease);
 }
-.round-opt:hover { background:var(--paper-press); }
+@media (hover: hover) { .round-opt:hover { background:var(--paper-press); } }
 .round-opt.on { background:var(--ink); color:var(--paper-pure); }
 .mode-opt { font-size:13px; padding:11px 6px; }
 .mode-hint { text-align:left; font-size:12px; margin-top:6px; }
@@ -267,7 +267,9 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
   cursor:pointer; min-height:62px; text-align:left;
   transition:background-color var(--dur-fast) var(--ease);
 }
-.option:hover:not(:disabled) { background:var(--paper-press); }
+@media (hover: hover) {
+  .option:hover:not(:disabled) { background:var(--paper-press); }
+}
 .option:disabled { cursor:default; }
 .option.picked { background:var(--ink); color:var(--paper-pure); }
 .option.correct { background:var(--green); color:var(--paper-pure); border-color:var(--ink); }

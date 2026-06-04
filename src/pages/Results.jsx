@@ -49,6 +49,12 @@ export default function Results() {
     recordGameResult(user, lobby.gameId, me.score || 0, me.score === maxScore).catch(() => {});
   }, [lobby, user]);
 
+  // хост нажал «Играть снова» (resetLobby → status waiting) — возвращаем в лобби всех,
+  // не только хоста; заодно убираем мелькание «Ничья!» из-за обнулённого счёта
+  useEffect(() => {
+    if (lobby?.status === 'waiting') navigate(`/lobby/${code}`, { replace: true });
+  }, [lobby?.status, code, navigate]);
+
   if (loading) return <div className="screen center"><div className="spinner" /></div>;
   if (!lobby) {
     return (

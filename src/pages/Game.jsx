@@ -91,14 +91,15 @@ export default function Game() {
       if (audio.src !== round.previewUrl) {
         audio.src = round.previewUrl;
       }
-      const start = () => {
-        audio.volume = volume;
-        const target = round.offset + Math.max(0, (serverNow() - current.startedAt) / 1000);
-        try { audio.currentTime = target; } catch { /* ignore */ }
-        audio.play().then(() => setNeedTap(false)).catch(() => setNeedTap(true));
+      const seek = () => {
+        const t = round.offset + Math.max(0, (serverNow() - current.startedAt) / 1000);
+        try { audio.currentTime = t; } catch { /* ignore */ }
       };
-      if (audio.readyState >= 1) start();
-      else audio.onloadedmetadata = start;
+      audio.volume = volume;
+      seek();
+      // play() сразу: на iOS метаданные не грузятся без жеста, поэтому ждать их нельзя.
+      // Если автоплей заблокирован — поймаем ошибку и покажем кнопку «нажми, чтобы слушать».
+      audio.play().then(() => { setNeedTap(false); seek(); }).catch(() => setNeedTap(true));
     } else if (phase === 'reveal') {
       // на показе ответа песня доигрывает ещё пару секунд, не обрываясь резко
     } else {
@@ -195,8 +196,15 @@ export default function Game() {
       return;
     }
     const audio = audioRef.current;
-    if (!audio) return;
-    audio.play().then(() => setNeedTap(false)).catch(() => {});
+    if (!audio || !round || !current) return;
+    if (audio.src !== round.previewUrl) audio.src = round.previewUrl;
+    audio.volume = volume;
+    const seek = () => {
+      const t = round.offset + Math.max(0, (serverNow() - current.startedAt) / 1000);
+      try { audio.currentTime = t; } catch { /* ignore */ }
+    };
+    seek();
+    audio.play().then(() => { setNeedTap(false); seek(); }).catch(() => {});
   };
 
   const toggleMute = () => {
@@ -208,7 +216,7 @@ export default function Game() {
 
   return (
     <div className="screen game">
-      <audio ref={audioRef} preload="auto" />
+      <audio ref={audioRef} preload="auto" playsInline />
 
       <header className="game-head">
         <span className="round-counter">Раунд {current.index + 1} / {lobby.totalRounds}</span>
