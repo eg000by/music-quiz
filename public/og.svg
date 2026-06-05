@@ -3,20 +3,20 @@
   <rect width="1200" height="630" fill="#FBF7F1"/>
   <rect x="20" y="20" width="1160" height="590" fill="none" stroke="#0E1B3A" stroke-width="4"/>
 
-  <!-- Виниловая пластинка справа -->
-  <g transform="translate(940 315)">
-    <circle r="220" fill="#0E1B3A"/>
-    <circle r="200" fill="none" stroke="#FBF7F1" stroke-width="2" opacity="0.25"/>
-    <circle r="170" fill="none" stroke="#FBF7F1" stroke-width="2" opacity="0.25"/>
+  <!-- Виниловая пластинка справа (уменьшена и сдвинута к краю, чтобы не перекрывать текст) -->
+  <g transform="translate(1010 315)">
+    <circle r="155" fill="#0E1B3A"/>
     <circle r="140" fill="none" stroke="#FBF7F1" stroke-width="2" opacity="0.25"/>
-    <circle r="74" fill="#FF3A1D"/>
-    <circle r="12" fill="#FBF7F1"/>
+    <circle r="116" fill="none" stroke="#FBF7F1" stroke-width="2" opacity="0.25"/>
+    <circle r="92" fill="none" stroke="#FBF7F1" stroke-width="2" opacity="0.25"/>
+    <circle r="52" fill="#FF3A1D"/>
+    <circle r="9" fill="#FBF7F1"/>
   </g>
 
-  <!-- Текст слева -->
-  <text x="90" y="175" fill="#FF3A1D" font-size="30" font-weight="700" letter-spacing="6">ВИКТОРИНА × EGORIY</text>
-  <text x="86" y="300" fill="#0E1B3A" font-size="104" font-weight="800" letter-spacing="-3">Музыкальная</text>
-  <text x="86" y="408" fill="#0E1B3A" font-size="104" font-weight="800" letter-spacing="-3">викторина</text>
-  <text x="90" y="488" fill="#0E1B3A" font-size="36" font-weight="500" opacity="0.6">Угадай трек по отрывку и год выпуска</text>
-  <text x="90" y="540" fill="#1F8A4C" font-size="30" font-weight="700">Зови друзей по коду лобби · кто наберёт больше?</text>
+  <!-- Текст слева (левая колонка до x≈800, диск начинается с x≈855) -->
+  <text x="90" y="175" fill="#FF3A1D" font-size="28" font-weight="700" letter-spacing="5">ВИКТОРИНА × EGORIY</text>
+  <text x="86" y="295" fill="#0E1B3A" font-size="88" font-weight="800" letter-spacing="-3">Музыкальная</text>
+  <text x="86" y="392" fill="#0E1B3A" font-size="88" font-weight="800" letter-spacing="-3">викторина</text>
+  <text x="90" y="470" fill="#0E1B3A" font-size="34" font-weight="500" opacity="0.6">Угадай трек по отрывку и год выпуска</text>
+  <text x="90" y="524" fill="#1F8A4C" font-size="28" font-weight="700">Зови друзей по коду лобби · кто наберёт больше?</text>
 </svg>
