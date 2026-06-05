@@ -27,3 +27,22 @@ export function pointsForElapsed(ms) {
   const s = stageForElapsed(ms);
   return s === -1 ? 0 : STAGES[s].points;
 }
+
+// === Второй шаг раунда: угадывание года выпуска ===
+// Очки за год начисляются отдельно и складываются с очками за название.
+// Шкала ползунка: 1950 — текущий год.
+export const MIN_YEAR = 1950;
+export const MAX_YEAR_POINTS = 50; // вдвое меньше максимума за мгновенный ответ по названию
+export const YEAR_TOLERANCE = 10;  // за пределами ±10 лет промах не приносит очков
+
+// Близостный (не бинарный) балл: точное попадание — максимум, дальше линейно
+// −5 очков за каждый год промаха, за пределами допуска — 0.
+// 0 лет → 50, ±1 → 45, ±2 → 40, … ±9 → 5, ≥±10 → 0.
+// Линейная шкала выбрана намеренно: её легко объяснить игроку прямо в UI
+// («точный год +50, дальше меньше»).
+export function yearPoints(guess, actual) {
+  if (guess == null || actual == null) return 0;
+  const diff = Math.abs(guess - actual);
+  if (diff >= YEAR_TOLERANCE) return 0;
+  return Math.round(MAX_YEAR_POINTS * (1 - diff / YEAR_TOLERANCE));
+}

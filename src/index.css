@@ -259,6 +259,20 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 .reveal-info { text-align:center; }
 .reveal-title { font-size:20px; font-weight:700; letter-spacing:-.02em; }
 .reveal-artist { color:var(--ink-60); }
+.reveal-year { margin-top:4px; font-weight:700; color:var(--flame); letter-spacing:.04em; }
+
+/* Второй шаг раунда — ползунок года выпуска */
+.year-guess {
+  width:100%; max-width:460px; display:flex; flex-direction:column; gap:8px;
+  padding:14px; border:1.5px solid var(--ink); border-radius:2px; background:var(--paper-pure);
+}
+.year-guess-head { display:flex; justify-content:space-between; align-items:center; font-size:14px; }
+.year-guess-head b { color:var(--flame); font-size:18px; }
+.year-locked { display:inline-flex; align-items:center; gap:4px; color:var(--green); font-weight:700; }
+.year-slider { width:100%; accent-color:var(--flame); cursor:pointer; }
+.year-scale { display:flex; justify-content:space-between; font-size:11px; color:var(--ink-60); }
+.year-confirm { width:100%; }
+.year-hint { text-align:center; margin:0; font-size:12px; }
 
 .options { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; max-width:460px; }
 .option {
@@ -285,6 +299,8 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 .rr-row:last-child { border-bottom:1px solid var(--ink-30); }
 .rr-row .ok { color:var(--green); font-weight:700; }
 .rr-row .bad { color:var(--ink-60); }
+.rr-row .rr-year { color:var(--ink-60); text-align:right; min-width:120px; }
+.rr-row .rr-year b { color:var(--flame); }
 
 .tap-overlay {
   position:fixed; bottom:24px; left:50%; transform:translateX(-50%);

@@ -3,10 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { submitAnswer, revealRound, advanceRound } from '../services/lobby';
-import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed, BOTH_ANSWERED_EXTRA_MS, REVEAL_MS } from '../services/scoring';
+import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed, BOTH_ANSWERED_EXTRA_MS, REVEAL_MS, MIN_YEAR, MAX_YEAR_POINTS, yearPoints } from '../services/scoring';
 import { serverNow, syncClock } from '../services/clock';
 import { EvolutionPlayer, preload as preloadBuffer } from '../services/audioEngine';
 import Icon from '../components/Icon';
+
+const CURRENT_YEAR = new Date().getFullYear();
+const DEFAULT_YEAR = 2010; // стартовое положение ползунка года (большинство треков из этой эпохи)
 
 export default function Game() {
   const { code } = useParams();
@@ -18,6 +21,7 @@ export default function Game() {
   const engineRef = useRef(null);
   const [now, setNow] = useState(serverNow());
   const [myAnswer, setMyAnswer] = useState(null);
+  const [yearGuess, setYearGuess] = useState(DEFAULT_YEAR);
   const [needTap, setNeedTap] = useState(false);
   const [volume, setVolume] = useState(() => {
     const v = parseFloat(localStorage.getItem('mq_volume'));
@@ -61,6 +65,7 @@ export default function Game() {
   // сброс своего ответа при смене раунда + снятие фокуса с кнопки прошлого раунда
   useEffect(() => {
     setMyAnswer(null);
+    setYearGuess(DEFAULT_YEAR);
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }, [idx]);
 
@@ -163,6 +168,7 @@ export default function Game() {
   }
 
   const reveal = phase === 'reveal';
+  const hasYear = round.year != null; // у некоторых треков iTunes нет releaseDate — тогда шаг года пропускаем
   const elapsed = reveal ? ROUND_MS : Math.min(ROUND_MS, now - current.startedAt);
   const stage = stageForElapsed(elapsed);
   const stageInfo = stage === -1 ? null : STAGES[stage];
@@ -181,7 +187,20 @@ export default function Game() {
       atMs: Math.round(e),
       points: correct ? pointsForElapsed(e) : 0,
       correct,
+      // сохраняем уже сделанную догадку по году (название можно менять, год не сбрасываем)
+      year: myAnswer?.year ?? null,
+      yearPoints: myAnswer?.yearPoints ?? 0,
     };
+    setMyAnswer(ans);
+    submitAnswer(code, user.uid, ans).catch(() => {});
+  };
+
+  // Второй шаг: игрок подтверждает год выпуска. Очки за год начисляются по близости
+  // и складываются с очками за название. Подтвердить можно только после выбора варианта.
+  const confirmYear = () => {
+    if (reveal || !myAnswer) return;
+    const yp = yearPoints(yearGuess, round.year);
+    const ans = { ...myAnswer, year: yearGuess, yearPoints: yp };
     setMyAnswer(ans);
     submitAnswer(code, user.uid, ans).catch(() => {});
   };
@@ -278,6 +297,7 @@ export default function Game() {
           <div className="reveal-info">
             <div className="reveal-title">{round.title}</div>
             <div className="reveal-artist">{round.artist}</div>
+            {hasYear && <div className="reveal-year">{round.year}</div>}
           </div>
         )}
 
@@ -303,6 +323,29 @@ export default function Game() {
           })}
         </div>
 
+        {!reveal && myAnswer && hasYear && (
+          <div className="year-guess">
+            <div className="year-guess-head">
+              <span>Год выпуска: <b>{yearGuess}</b></span>
+              {myAnswer.year != null && (
+                <span className="year-locked"><Icon name="check" size={14} /> {myAnswer.year}</span>
+              )}
+            </div>
+            <input
+              className="year-slider"
+              type="range" min={MIN_YEAR} max={CURRENT_YEAR} step="1"
+              value={yearGuess}
+              onChange={(e) => setYearGuess(parseInt(e.target.value, 10))}
+              aria-label="Год выпуска трека"
+            />
+            <div className="year-scale"><span>{MIN_YEAR}</span><span>{CURRENT_YEAR}</span></div>
+            <button className="btn btn-secondary year-confirm" onClick={(e) => { e.currentTarget.blur(); confirmYear(); }}>
+              {myAnswer.year != null ? 'Обновить год' : 'Подтвердить год'}
+            </button>
+            <p className="muted year-hint">Точный год +{MAX_YEAR_POINTS}, дальше меньше</p>
+          </div>
+        )}
+
         {!reveal && myAnswer && (
           <p className="muted waiting">
             {answerCount >= playerCount && playerCount > 0
@@ -315,6 +358,7 @@ export default function Game() {
           <div className="round-results">
             {playerList.map((p) => {
               const a = answers[p.uid];
+              const yd = hasYear && a && a.year != null ? a.year - round.year : null;
               return (
                 <div key={p.uid} className="rr-row">
                   <span>{p.name.split(' ')[0]}</span>
@@ -324,6 +368,11 @@ export default function Game() {
                     </span>
                   ) : (
                     <span className="bad">не успел</span>
+                  )}
+                  {yd != null && (
+                    <span className="rr-year">
+                      {a.year} · {yd === 0 ? 'точно!' : `${yd > 0 ? '+' : '−'}${Math.abs(yd)}`} · <b>+{a.yearPoints || 0}</b>
+                    </span>
                   )}
                 </div>
               );

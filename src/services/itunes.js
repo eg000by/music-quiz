@@ -36,6 +36,14 @@ function hiResArtwork(url) {
   return url.replace(/\/\d+x\d+bb?\./, '/300x300bb.');
 }
 
+// Год выпуска из releaseDate каталога iTunes (ISO-строка вида "2011-08-01T07:00:00Z").
+// Может отсутствовать у части треков — тогда фича угадывания года для раунда отключается.
+function releaseYear(r) {
+  if (!r.releaseDate) return null;
+  const y = new Date(r.releaseDate).getFullYear();
+  return Number.isFinite(y) ? y : null;
+}
+
 function toTrack(r) {
   return {
     trackId: r.trackId,
@@ -43,6 +51,7 @@ function toTrack(r) {
     artist: r.artistName,
     previewUrl: r.previewUrl,
     artwork: hiResArtwork(r.artworkUrl100),
+    year: releaseYear(r),
   };
 }
 

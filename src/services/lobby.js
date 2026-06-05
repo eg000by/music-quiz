@@ -189,6 +189,7 @@ async function buildRounds(songs, n) {
       artist: t.artist,
       artwork: t.artwork || null,
       previewUrl: t.previewUrl,
+      year: t.year ?? null, // год выпуска для второго шага; null — шаг отключён для раунда
       offset: Math.floor(Math.random() * 10), // 0..9 сек, чтобы окно в 20с влезло в 30с превью
       options,
       correctIndex: options.indexOf(correctTitle),
@@ -261,7 +262,9 @@ export async function revealRound(code) {
     const answers = data.answers || {};
     const updates = { 'current.phase': 'reveal' };
     Object.entries(answers).forEach(([uid, a]) => {
-      if (a && a.points) updates[`players.${uid}.score`] = increment(a.points);
+      // Итог раунда = очки за название + очки за год (год может быть и при неверном названии).
+      const total = (a?.points || 0) + (a?.yearPoints || 0);
+      if (total) updates[`players.${uid}.score`] = increment(total);
     });
     tx.update(ref, updates);
   });
