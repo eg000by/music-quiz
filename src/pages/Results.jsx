@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { resetLobby } from '../services/lobby';
 import { recordGameResult } from '../services/users';
+import { shareOrCopy } from '../services/share';
 import { STAGES } from '../services/scoring';
 import Icon from '../components/Icon';
 import trophy from '../assets/illustrations/trophy.svg';
@@ -37,6 +38,7 @@ export default function Results() {
   const { lobby, loading } = useLobby(code);
   const navigate = useNavigate();
   const recordedRef = useRef(false);
+  const [shareMsg, setShareMsg] = useState('');
 
   // Записываем результат партии в таблицу лидеров (один раз за gameId).
   useEffect(() => {
@@ -83,6 +85,19 @@ export default function Results() {
     navigate(`/lobby/${code}`);
   };
 
+  const handleShareResult = async () => {
+    const myScore = lobby.players[user.uid]?.score || 0;
+    const res = await shareOrCopy({
+      title: 'Музыкальная викторина',
+      text: `Я набрал ${myScore} очков в музыкальной викторине! А ты сможешь лучше?`,
+      url: window.location.origin,
+    });
+    if (res === 'copied') setShareMsg('Ссылка скопирована');
+    else if (res === 'failed') setShareMsg('Не удалось поделиться');
+    else setShareMsg('');
+    if (res === 'copied' || res === 'failed') setTimeout(() => setShareMsg(''), 2500);
+  };
+
   return (
     <div className="screen center">
       <div className="card results-card">
@@ -110,6 +125,11 @@ export default function Results() {
             );
           })}
         </div>
+
+        <button className="btn btn-primary share-btn" onClick={handleShareResult}>
+          <Icon name="share" size={18} /> Поделиться результатом
+        </button>
+        {shareMsg && <p className="muted share-msg">{shareMsg}</p>}
 
         <div className="results-actions">
           {isHost ? (

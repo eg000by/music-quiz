@@ -13,6 +13,7 @@ import {
   combinedSongs,
 } from '../services/lobby';
 import { syncClock } from '../services/clock';
+import { shareOrCopy } from '../services/share';
 import Icon from '../components/Icon';
 
 const MIN_ROUNDS = 3;
@@ -29,6 +30,20 @@ export default function Lobby() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
+  const [shareMsg, setShareMsg] = useState('');
+
+  const handleShareInvite = async () => {
+    const url = `${window.location.origin}/lobby/${code}`;
+    const res = await shareOrCopy({
+      title: 'Музыкальная викторина',
+      text: `Заходи в музыкальную викторину! Код лобби: ${code}`,
+      url,
+    });
+    if (res === 'copied') setShareMsg('Ссылка скопирована');
+    else if (res === 'failed') setShareMsg('Не удалось поделиться');
+    else setShareMsg('');
+    if (res === 'copied' || res === 'failed') setTimeout(() => setShareMsg(''), 2500);
+  };
 
   // заранее измеряем смещение часов, чтобы хост стартовал раунды в серверном времени
   useEffect(() => {
@@ -104,6 +119,11 @@ export default function Lobby() {
             : `Выберите паки · ${roundCount} раундов`}
           {mode === 'evolution' && ' · режим: Эволюция трека'}
         </p>
+
+        <button className="btn btn-secondary share-btn" onClick={handleShareInvite}>
+          <Icon name="share" size={16} /> Пригласить друзей
+        </button>
+        {shareMsg && <p className="muted share-msg">{shareMsg}</p>}
 
         <div className="players-list">
           {players.map((p) => (

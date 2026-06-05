@@ -332,6 +332,8 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
   border-top:1px solid var(--ink-30); padding-top:7px;
 }
 .stat-line b { color:var(--ink); font-weight:700; }
+.share-msg { text-align:center; margin-top:6px; font-size:13px; }
+
 .results-actions { width:100%; display:flex; flex-direction:column; gap:4px; }
 
 /* ---------- spinner ---------- */
