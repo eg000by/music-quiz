@@ -1,5 +1,6 @@
 // Инициализация Firebase. Значения берутся из .env (см. .env.example).
 import { initializeApp } from 'firebase/app';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
@@ -13,6 +14,24 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
+// App Check: запросы к Firestore принимаются только от настоящего приложения, боты
+// отсекаются — это главная защита бесплатной квоты от выжигания. Инициализируем сразу
+// после приложения, до остальных сервисов. Без ключа reCAPTCHA (VITE_APPCHECK_SITE_KEY)
+// блок пропускается, чтобы локальная сборка работала до настройки в консоли.
+// Включается enforcement отдельно в Firebase Console → App Check.
+const appCheckKey = import.meta.env.VITE_APPCHECK_SITE_KEY;
+if (appCheckKey) {
+  // Для локальной разработки: VITE_APPCHECK_DEBUG=true печатает в консоль debug-токен,
+  // который нужно один раз зарегистрировать в Console → App Check → Debug tokens.
+  if (import.meta.env.DEV && import.meta.env.VITE_APPCHECK_DEBUG === 'true') {
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(appCheckKey),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
