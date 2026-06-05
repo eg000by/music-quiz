@@ -21,7 +21,7 @@ import {
   deleteField,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { searchTrack } from './itunes';
+import { searchTrack } from './tracksService';
 import { serverNow } from './clock';
 import { getPack } from '../data/packs';
 
