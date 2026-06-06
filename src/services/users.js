@@ -16,7 +16,10 @@ import { db } from '../firebase';
 // ещё до первой партии. Статистику не трогает: при существующем документе обновляем
 // только имя и фото, при новом — инициализируем счётчики нулями.
 export async function ensureProfile(user) {
-  if (!user) return;
+  // Гостей (анонимный вход) в таблицу лидеров не добавляем: иначе она забьётся
+  // безымянными «Игрок», да и это лишние записи в Firestore на каждого посетителя.
+  // Профиль появляется при входе через Google (после link uid и счёт сохраняются).
+  if (!user || user.isAnonymous) return;
   const ref = doc(db, 'users', user.uid);
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
@@ -39,7 +42,8 @@ export async function ensureProfile(user) {
 // второй игрок и т.п.) не задваивает очки. Транзакция гарантирует это и на разных
 // устройствах. recordedGames ограничиваем по длине, чтобы массив не рос бесконечно.
 export async function recordGameResult(user, gameId, score, won) {
-  if (!user || !gameId) return;
+  // Результаты гостей не записываем — они не в таблице лидеров (см. ensureProfile).
+  if (!user || user.isAnonymous || !gameId) return;
   const ref = doc(db, 'users', user.uid);
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);

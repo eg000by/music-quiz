@@ -109,7 +109,7 @@ export default function Home() {
             ? <img src={user.photoURL} alt="" className="avatar" />
             : <div className="avatar ph">{initial}</div>}
           {user.isAnonymous ? (
-            <button className="iconbtn" onClick={() => signIn().catch(() => {})} title="Войти через Google — сохранить прогресс" aria-label="Войти через Google">
+            <button className="iconbtn" onClick={() => signIn().catch(() => {})} title="Войти через Google — сохранять прогресс и попасть в таблицу лидеров" aria-label="Войти через Google">
               <span className="g-mark">G</span>
             </button>
           ) : (
