@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
@@ -6,6 +6,7 @@ import { getPack, PACKS } from '../data/packs';
 import {
   setReady,
   startGame,
+  joinLobby,
   leaveLobby,
   setLobbyRounds,
   setLobbyMode,
@@ -30,6 +31,17 @@ export default function Lobby() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
+  const joiningRef = useRef(false);
+
+  // Заход по ссылке-приглашению (/lobby/CODE) ведёт сюда напрямую, минуя join с
+  // главной. Если игрока ещё нет в составе — добавляем его сам (один раз).
+  useEffect(() => {
+    if (!lobby || !user?.uid) return;
+    if (lobby.players?.[user.uid]) { joiningRef.current = false; return; }
+    if (joiningRef.current) return;
+    joiningRef.current = true;
+    joinLobby(code, user).catch((e) => setError(e.message || 'Не удалось войти в лобби'));
+  }, [lobby, user, code]);
   const [shareMsg, setShareMsg] = useState('');
 
   const handleShareInvite = async () => {
@@ -74,9 +86,27 @@ export default function Lobby() {
     );
   }
 
+  const me = lobby.players[user.uid];
+  if (!me) {
+    return (
+      <div className="screen center">
+        {error ? (
+          <div className="card center-card">
+            <p>{error}</p>
+            <button className="btn btn-secondary" onClick={() => navigate('/')}>На главную</button>
+          </div>
+        ) : (
+          <>
+            <div className="spinner" />
+            <p className="muted">Входим в лобби…</p>
+          </>
+        )}
+      </div>
+    );
+  }
+
   const isHost = lobby.hostId === user.uid;
   const players = lobby.playerOrder.map((uid) => lobby.players[uid]).filter(Boolean);
-  const me = lobby.players[user.uid];
   const myPacks = me?.packs || [];
   const roundCount = lobby.roundCount || 8;
   const mode = lobby.mode || 'normal';
