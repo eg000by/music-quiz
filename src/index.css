@@ -80,6 +80,9 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 .btn-primary:hover:not(:disabled) { background:var(--flame-press); }
 .btn-secondary { background:var(--ink); color:var(--paper-pure); border:1.5px solid var(--ink); }
 .btn-secondary:hover:not(:disabled) { background:#1A2B55; }
+.btn-ghost { background:transparent; color:var(--ink-60); border:1.5px solid var(--ink-30); }
+.btn-ghost:hover:not(:disabled) { background:var(--paper-press); color:var(--ink); }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
 .btn-google { background:var(--paper-pure); color:var(--ink); border:1.5px solid var(--ink); }
 .btn-google:hover { background:var(--paper-press); }
 .btn-google .g { font-weight:800; color:var(--ink); }
@@ -183,9 +186,11 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 .lobby-settings { width:100%; }
 .lobby-settings .pack-grid { margin:8px 0 4px; }
 .settings-label {
-  display:block; text-align:left; font-size:11px; font-weight:600;
-  letter-spacing:.12em; text-transform:uppercase; color:var(--ink-60); margin-top:10px;
+  display:flex; justify-content:space-between; align-items:baseline; text-align:left;
+  font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-60); margin:16px 0 8px;
 }
+.settings-label .lab-count { letter-spacing:0; color:var(--flame); }
 .rounds-row { display:flex; gap:8px; margin:8px 0 4px; }
 .round-opt {
   flex:1; padding:11px 0; background:var(--paper-pure); border:1.5px solid var(--ink);
@@ -234,14 +239,10 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 /* ---------- lobby ---------- */
 .lobby-card { text-align:center; display:flex; flex-direction:column; align-items:center; }
 .code-display {
-  font-size:60px; font-weight:800; letter-spacing:10px; text-indent:10px;
-  color:var(--flame); margin:6px 0; line-height:1; font-variant-numeric:tabular-nums;
+  font-size:56px; font-weight:800; letter-spacing:10px; text-indent:10px;
+  color:var(--flame); margin:4px 0 2px; line-height:1; font-variant-numeric:tabular-nums;
 }
-.pack-line {
-  display:inline-flex; align-items:center; gap:7px; justify-content:center;
-  margin-bottom:16px; color:var(--ink-60); font-weight:500;
-}
-.pack-line svg { color:var(--flame); }
+.meta-line { color:var(--ink-60); font-weight:500; font-size:13px; margin-bottom:16px; }
 .players-list { width:100%; display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
 .player-row {
   display:flex; align-items:center; gap:11px;
@@ -257,6 +258,70 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
   background:var(--paper); border:1.5px solid var(--ink-30); color:var(--ink-60);
 }
 .ready-badge.on { border-color:var(--green); color:var(--green); background:var(--paper-pure); }
+.player-row .avatar { width:34px; height:34px; font-size:14px; }
+.player-tags { display:flex; flex-wrap:wrap; gap:5px; }
+
+/* invite affordance inside the players list */
+.invite-row {
+  display:flex; align-items:center; justify-content:center; gap:8px; width:100%; white-space:nowrap;
+  background:var(--paper); border:1.5px dashed var(--ink-30); border-radius:2px; padding:11px 12px;
+  color:var(--ink-60); font-size:13px; font-weight:600; cursor:pointer; font-family:var(--font-sans);
+  transition:background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.invite-row:hover { background:var(--paper-press); border-color:var(--ink); color:var(--ink); }
+.invite-row svg { color:var(--ember); flex:0 0 auto; }
+.invite-toast { font-size:12px; color:var(--green); margin-top:8px; font-weight:600; }
+
+/* settings: compact pack toggle-chips */
+.settings { width:100%; margin-top:6px; }
+.pack-toggles { display:flex; flex-wrap:wrap; gap:8px; }
+.pack-toggles.scroll {
+  max-height:150px; overflow-y:auto; align-content:flex-start;
+  padding:12px; border:1.5px solid var(--ink-30); border-radius:2px; background:var(--paper);
+}
+.pack-toggles.scroll::-webkit-scrollbar { width:8px; }
+.pack-toggles.scroll::-webkit-scrollbar-thumb { background:var(--ink-30); border-radius:999px; border:2px solid var(--paper); }
+.pack-toggle {
+  display:inline-flex; align-items:center; gap:7px; padding:8px 12px; border-radius:999px;
+  background:var(--paper-pure); border:1.5px solid var(--ink-30); color:var(--ink-60);
+  font-family:var(--font-sans); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;
+  transition:background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.pack-toggle svg { width:15px; height:15px; flex:0 0 auto; color:var(--ember); }
+@media (hover: hover) { .pack-toggle:hover { border-color:var(--ink); color:var(--ink); } }
+.pack-toggle.on { background:var(--ink); border-color:var(--ink); color:var(--paper-pure); }
+.pack-toggle.on svg { color:var(--paper-pure); }
+.pack-toggle .pt-tick { width:14px; height:14px; }
+.pack-toggle .pt-tick svg { color:currentColor; }
+
+/* mode segmented control */
+.seg { display:flex; gap:8px; }
+.seg-btn {
+  flex:1; display:flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap;
+  padding:11px 8px; border-radius:2px; font-family:var(--font-sans); font-size:13px; font-weight:600; cursor:pointer;
+  background:var(--paper); border:1.5px solid var(--ink-30); color:var(--ink-60);
+  transition:background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+@media (hover: hover) { .seg-btn:hover { border-color:var(--ink); color:var(--ink); } }
+.seg-btn.on { background:var(--ink); border-color:var(--ink); color:var(--paper-pure); }
+.seg-btn .seg-tick { display:none; flex:0 0 auto; }
+.seg-btn.on .seg-tick { display:flex; }
+
+/* guest wait note */
+.wait-note {
+  width:100%; margin-top:14px; display:flex; align-items:center; justify-content:center; gap:8px;
+  color:var(--ink-60); font-size:13px; font-weight:500;
+}
+.wait-note .dot { width:7px; height:7px; border-radius:50%; background:var(--ember); flex:0 0 auto; }
+
+/* leave link */
+.leave-wrap { width:100%; margin-top:18px; padding-top:16px; border-top:1px solid var(--ink-10); display:flex; justify-content:center; }
+.leave-link {
+  display:inline-flex; align-items:center; gap:6px; background:none; border:none; cursor:pointer;
+  color:var(--ink-60); font-family:var(--font-sans); font-size:13px; font-weight:500; padding:2px 4px; white-space:nowrap;
+  transition:color var(--dur-fast) var(--ease);
+}
+.leave-link:hover { color:var(--flame); }
 
 /* ---------- game ---------- */
 .game { display:flex; flex-direction:column; }

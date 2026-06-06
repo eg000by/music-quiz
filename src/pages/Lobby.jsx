@@ -31,6 +31,7 @@ export default function Lobby() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
+  const [shareMsg, setShareMsg] = useState('');
   const joiningRef = useRef(false);
 
   // Заход по ссылке-приглашению (/lobby/CODE) ведёт сюда напрямую, минуя join с
@@ -42,20 +43,6 @@ export default function Lobby() {
     joiningRef.current = true;
     joinLobby(code, user).catch((e) => setError(e.message || 'Не удалось войти в лобби'));
   }, [lobby, user, code]);
-  const [shareMsg, setShareMsg] = useState('');
-
-  const handleShareInvite = async () => {
-    const url = `${window.location.origin}/lobby/${code}`;
-    const res = await shareOrCopy({
-      title: 'Музыкальная викторина',
-      text: `Заходи в музыкальную викторину! Код лобби: ${code}`,
-      url,
-    });
-    if (res === 'copied') setShareMsg('Ссылка скопирована');
-    else if (res === 'failed') setShareMsg('Не удалось поделиться');
-    else setShareMsg('');
-    if (res === 'copied' || res === 'failed') setTimeout(() => setShareMsg(''), 2500);
-  };
 
   // заранее измеряем смещение часов, чтобы хост стартовал раунды в серверном времени
   useEffect(() => {
@@ -71,6 +58,19 @@ export default function Lobby() {
       navigate(`/results/${code}`, { replace: true });
     }
   }, [lobby?.status, code, navigate]);
+
+  const handleShareInvite = async () => {
+    const url = `${window.location.origin}/lobby/${code}`;
+    const res = await shareOrCopy({
+      title: 'Музыкальная викторина',
+      text: `Заходи в музыкальную викторину! Код лобби: ${code}`,
+      url,
+    });
+    if (res === 'copied') setShareMsg('Ссылка скопирована — отправь другу');
+    else if (res === 'failed') setShareMsg('Не удалось поделиться');
+    else setShareMsg('');
+    if (res === 'copied' || res === 'failed') setTimeout(() => setShareMsg(''), 2500);
+  };
 
   if (loading) {
     return <div className="screen center"><div className="spinner" /></div>;
@@ -107,7 +107,7 @@ export default function Lobby() {
 
   const isHost = lobby.hostId === user.uid;
   const players = lobby.playerOrder.map((uid) => lobby.players[uid]).filter(Boolean);
-  const myPacks = me?.packs || [];
+  const myPacks = me.packs || [];
   const roundCount = lobby.roundCount || 8;
   const mode = lobby.mode || 'normal';
   const everyoneReady = players.length >= 1 && players.every((p) => p.ready);
@@ -117,6 +117,7 @@ export default function Lobby() {
   players.forEach((p) => (p.packs || []).forEach((id) => selectedPackIds.add(id)));
   const poolSongs = combinedSongs(lobby).length;
   const hasPacks = selectedPackIds.size > 0;
+  const manyPacks = PACKS.length > 6;
 
   const toggleReady = () => setReady(code, user.uid, !me.ready).catch(() => {});
   const toggleMyPack = (packId) =>
@@ -143,29 +144,26 @@ export default function Lobby() {
       <div className="card lobby-card">
         <span className="eyebrow">Код лобби</span>
         <div className="code-display">{lobby.code}</div>
-        <p className="muted pack-line">
+        <p className="meta-line">
           {hasPacks
             ? `В игре: ${poolSongs} песен · ${roundCount} раундов`
-            : `Выберите паки · ${roundCount} раундов`}
-          {mode === 'evolution' && ' · режим: Эволюция трека'}
+            : `Выбери паки · ${roundCount} раундов`}
+          {mode === 'evolution' && ' · Эволюция трека'}
         </p>
-
-        <button className="btn btn-secondary share-btn" onClick={handleShareInvite}>
-          <Icon name="share" size={16} /> Пригласить друзей
-        </button>
-        {shareMsg && <p className="muted share-msg">{shareMsg}</p>}
 
         <div className="players-list">
           {players.map((p) => (
             <div key={p.uid} className="player-row">
-              {p.photo ? <img src={p.photo} alt="" className="avatar" /> : <div className="avatar ph">{p.name[0]}</div>}
+              {p.photo
+                ? <img src={p.photo} alt="" className="avatar" />
+                : <div className="avatar ph">{(p.name || 'И')[0]}</div>}
               <div className="player-main">
                 <span className="player-name">
-                  {p.name}{p.uid === lobby.hostId && <Icon name="crown" size={15} className="host-mark" />}
+                  {p.name}{p.uid === lobby.hostId && <Icon name="crown" size={14} className="host-mark" />}
                 </span>
-                <div className="player-packs">
+                <div className="player-tags">
                   {(p.packs || []).length === 0
-                    ? <span className="muted no-packs">паки не выбраны</span>
+                    ? <span className="no-packs">паки не выбраны</span>
                     : (p.packs || []).map((id) => {
                         const pk = getPack(id);
                         return pk ? (
@@ -174,33 +172,41 @@ export default function Lobby() {
                       })}
                 </div>
               </div>
-              <span className={`ready-badge ${p.ready ? 'on' : ''}`}>{p.ready ? 'готов' : 'не готов'}</span>
+              <span className={`ready-badge${p.ready ? ' on' : ''}`}>{p.ready ? 'готов' : 'не готов'}</span>
             </div>
           ))}
-          {players.length < 4 && (
-            <div className="player-row empty">Ждём игроков… (до 4)</div>
-          )}
-        </div>
 
-        <div className="lobby-settings">
-          <span className="settings-label">Мои паки (объединяются у всех)</span>
-          <div className="pack-grid">
-            {PACKS.map((p) => (
-              <button
-                key={p.id}
-                className={`pack ${myPacks.includes(p.id) ? 'pack-active' : ''}`}
-                onClick={() => toggleMyPack(p.id)}
-              >
-                <span className="pack-emoji"><Icon name={p.icon} size={21} /></span>
-                <span className="pack-name">{p.name}</span>
-                <span className="pack-count">{p.songs.length} песен</span>
-              </button>
-            ))}
+          <button className="invite-row" onClick={handleShareInvite}>
+            <Icon name="share" size={16} /> Позвать друзей по коду
+          </button>
+        </div>
+        {shareMsg && <p className="invite-toast">{shareMsg}</p>}
+
+        <div className="settings">
+          <span className="settings-label">
+            <span>Мои паки · объединяются у всех</span>
+            <span className="lab-count">{myPacks.length}</span>
+          </span>
+          <div className={`pack-toggles${manyPacks ? ' scroll' : ''}`}>
+            {PACKS.map((p) => {
+              const on = myPacks.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  className={`pack-toggle${on ? ' on' : ''}`}
+                  onClick={() => toggleMyPack(p.id)}
+                >
+                  <Icon name={p.icon} size={15} />
+                  {p.name}
+                  {on && <span className="pt-tick"><Icon name="check" size={14} /></span>}
+                </button>
+              );
+            })}
           </div>
 
           {isHost && (
             <>
-              <span className="settings-label">Раундов: {roundCount}</span>
+              <span className="settings-label"><span>Раундов</span><span className="lab-count">{roundCount}</span></span>
               <input
                 className="rounds-slider"
                 type="range"
@@ -211,14 +217,15 @@ export default function Lobby() {
                 aria-label="Количество раундов"
               />
 
-              <span className="settings-label">Режим</span>
-              <div className="rounds-row">
+              <span className="settings-label"><span>Режим</span></span>
+              <div className="seg">
                 {MODES.map((m) => (
                   <button
                     key={m.id}
-                    className={`round-opt mode-opt ${mode === m.id ? 'on' : ''}`}
+                    className={`seg-btn${mode === m.id ? ' on' : ''}`}
                     onClick={() => setLobbyMode(code, m.id).catch(() => {})}
                   >
+                    <span className="seg-tick"><Icon name="check" size={15} /></span>
                     {m.label}
                   </button>
                 ))}
@@ -230,24 +237,34 @@ export default function Lobby() {
           )}
         </div>
 
-        <button className={`btn ${me.ready ? 'btn-secondary' : 'btn-primary'}`} onClick={toggleReady}>
-          {me.ready ? 'Отменить готовность' : <><Icon name="check" size={18} /> Я готов</>}
-        </button>
-
-        {isHost && (
-          <button
-            className="btn btn-primary"
-            onClick={handleStart}
-            disabled={!everyoneReady || starting || !hasPacks}
-          >
-            {starting ? 'Загрузка треков…' : <><Icon name="play" size={18} /> Начать игру</>}
+        {me.ready ? (
+          <button className="btn btn-ghost" onClick={toggleReady}>Отменить готовность</button>
+        ) : (
+          <button className="btn btn-primary" onClick={toggleReady}>
+            <Icon name="check" size={18} /> Я готов
           </button>
         )}
-        {isHost && !hasPacks && <p className="muted">Нужно выбрать хотя бы один пак</p>}
-        {!isHost && <p className="muted">Хост запустит игру, когда все будут готовы</p>}
+
+        {isHost ? (
+          <>
+            <button
+              className="btn btn-primary"
+              onClick={handleStart}
+              disabled={!everyoneReady || starting || !hasPacks}
+            >
+              {starting ? 'Загрузка треков…' : <><Icon name="play" size={18} /> Начать игру</>}
+            </button>
+            {!hasPacks && <p className="muted" style={{ marginTop: 8 }}>Выбери хотя бы один пак</p>}
+          </>
+        ) : (
+          <div className="wait-note"><span className="dot" /> Хост запустит игру, когда все будут готовы</div>
+        )}
 
         {error && <div className="error">{error}</div>}
-        <button className="btn-link" onClick={handleLeave}>выйти из лобби</button>
+
+        <div className="leave-wrap">
+          <button className="leave-link" onClick={handleLeave}><Icon name="logout" size={15} /> Выйти из лобби</button>
+        </div>
       </div>
     </div>
   );
