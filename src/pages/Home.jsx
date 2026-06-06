@@ -54,7 +54,7 @@ function PackPicker({ value, onChange }) {
 }
 
 export default function Home() {
-  const { user, signOut } = useAuth();
+  const { user, signIn, signOut } = useAuth();
   const navigate = useNavigate();
   const [packId, setPackId] = useState(PACKS[0].id);
   const [code, setCode] = useState('');
@@ -108,9 +108,15 @@ export default function Home() {
           {user.photoURL
             ? <img src={user.photoURL} alt="" className="avatar" />
             : <div className="avatar ph">{initial}</div>}
-          <button className="iconbtn" onClick={() => signOut()} title="Выйти" aria-label="Выйти">
-            <Icon name="logout" size={18} />
-          </button>
+          {user.isAnonymous ? (
+            <button className="iconbtn" onClick={() => signIn().catch(() => {})} title="Войти через Google — сохранить прогресс" aria-label="Войти через Google">
+              <span className="g-mark">G</span>
+            </button>
+          ) : (
+            <button className="iconbtn" onClick={() => signOut()} title="Выйти" aria-label="Выйти">
+              <Icon name="logout" size={18} />
+            </button>
+          )}
         </div>
       </header>
 

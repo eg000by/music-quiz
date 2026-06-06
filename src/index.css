@@ -121,6 +121,7 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
   transition:background-color var(--dur-fast) var(--ease);
 }
 @media (hover: hover) { .iconbtn:hover { background:var(--paper-press); } }
+.iconbtn .g-mark { font-weight:800; font-size:16px; line-height:1; }
 .avatar {
   width:30px; height:30px; border-radius:50%; object-fit:cover;
   border:1.5px solid var(--ink); background:var(--ember); flex:0 0 auto;

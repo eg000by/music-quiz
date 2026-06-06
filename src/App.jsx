@@ -7,7 +7,10 @@ import Game from './pages/Game';
 import Results from './pages/Results';
 import Leaderboard from './pages/Leaderboard';
 
-function Protected({ children }) {
+// Гостевой вход без экрана логина: пока идёт анонимный вход — спиннер; пользователь
+// всегда есть (анонимный или Google). Login показываем только как фолбэк, если
+// анонимный вход недоступен (провайдер выключен в консоли).
+function Gate({ children }) {
   const { user, loading } = useAuth();
   if (loading) {
     return (
@@ -16,19 +19,18 @@ function Protected({ children }) {
       </div>
     );
   }
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Login />;
   return children;
 }
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/" element={<Protected><Home /></Protected>} />
-      <Route path="/lobby/:code" element={<Protected><Lobby /></Protected>} />
-      <Route path="/game/:code" element={<Protected><Game /></Protected>} />
-      <Route path="/results/:code" element={<Protected><Results /></Protected>} />
-      <Route path="/leaderboard" element={<Protected><Leaderboard /></Protected>} />
+      <Route path="/" element={<Gate><Home /></Gate>} />
+      <Route path="/lobby/:code" element={<Gate><Lobby /></Gate>} />
+      <Route path="/game/:code" element={<Gate><Game /></Gate>} />
+      <Route path="/results/:code" element={<Gate><Results /></Gate>} />
+      <Route path="/leaderboard" element={<Gate><Leaderboard /></Gate>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -1,16 +1,12 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logoMark from '../assets/illustrations/logo-mark.svg';
 import vinyl from '../assets/illustrations/vinyl.svg';
 
+// Фолбэк-экран входа. В обычном потоке не показывается (гостевой анонимный вход
+// происходит автоматически), но если анонимный провайдер недоступен — отсюда можно
+// войти через Google. Как только появится пользователь, Gate сам покажет приложение.
 export default function Login() {
-  const { user, signIn } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user) navigate('/', { replace: true });
-  }, [user, navigate]);
+  const { signIn } = useAuth();
 
   return (
     <div className="screen center">
