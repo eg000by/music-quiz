@@ -4,6 +4,54 @@ import { useAuth } from '../context/AuthContext';
 import { PACKS } from '../data/packs';
 import { createLobby, joinLobby } from '../services/lobby';
 import Icon from '../components/Icon';
+import logoMark from '../assets/illustrations/logo-mark.svg';
+
+// Выбор пака свёрнут в выпадающий список, чтобы не занимать весь первый экран.
+function PackPicker({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const sel = PACKS.find((p) => p.id === value) || PACKS[0];
+  return (
+    <div className="pack-picker">
+      <button
+        type="button"
+        className={`pack-select${open ? ' open' : ''}`}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="pack-emoji"><Icon name={sel.icon} size={20} /></span>
+        <span className="ps-text">
+          <span className="ps-name">{sel.name}</span>
+          <span className="ps-count">{sel.songs.length} песен</span>
+        </span>
+        <span className="ps-chev"><Icon name="chevronDown" size={16} /></span>
+      </button>
+      {open && (
+        <>
+          <div className="menu-backdrop" onClick={() => setOpen(false)} />
+          <ul className="pack-menu" role="listbox">
+            {PACKS.map((p) => (
+              <li
+                key={p.id}
+                role="option"
+                aria-selected={p.id === value}
+                className={`pack-row${p.id === value ? ' sel' : ''}`}
+                onClick={() => { onChange(p.id); setOpen(false); }}
+              >
+                <span className="pack-emoji"><Icon name={p.icon} size={20} /></span>
+                <span className="ps-text">
+                  <span className="ps-name">{p.name}</span>
+                  <span className="ps-count">{p.songs.length} песен</span>
+                </span>
+                {p.id === value && <span className="tick"><Icon name="check" size={18} /></span>}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
   const { user, signOut } = useAuth();
@@ -44,45 +92,42 @@ export default function Home() {
     }
   };
 
+  const initial = (user.displayName || 'И').trim()[0];
+
   return (
     <div className="screen">
       <header className="topbar">
-        <div className="brand"><span className="brand-logo"><Icon name="music" size={16} /></span> Викторина</div>
+        <div className="brand">
+          <img className="brand-logo-img" src={logoMark} alt="" />
+          <span className="brand-name">Egorii</span>
+        </div>
         <div className="user">
-          <button className="lb-link" onClick={() => navigate('/leaderboard')} title="Таблица лидеров">
-            <Icon name="crown" size={16} /> Лидеры
+          <button className="iconbtn" onClick={() => navigate('/leaderboard')} title="Таблица лидеров" aria-label="Таблица лидеров">
+            <Icon name="crown" size={18} />
           </button>
-          {user.photoURL && <img src={user.photoURL} alt="" className="avatar" />}
-          <span>{user.displayName}</span>
-          <button className="btn-link" onClick={() => signOut()}>выйти</button>
+          {user.photoURL
+            ? <img src={user.photoURL} alt="" className="avatar" />
+            : <div className="avatar ph">{initial}</div>}
+          <button className="iconbtn" onClick={() => signOut()} title="Выйти" aria-label="Выйти">
+            <Icon name="logout" size={18} />
+          </button>
         </div>
       </header>
 
       <main className="home">
         <section className="card">
-          <h2>Создать лобби</h2>
-          <p className="muted">Выбери пак музыки и пригласи друга по коду</p>
-          <div className="pack-grid">
-            {PACKS.map((p) => (
-              <button
-                key={p.id}
-                className={`pack ${packId === p.id ? 'pack-active' : ''}`}
-                onClick={() => setPackId(p.id)}
-              >
-                <span className="pack-emoji"><Icon name={p.icon} size={21} /></span>
-                <span className="pack-name">{p.name}</span>
-                <span className="pack-count">{p.songs.length} песен</span>
-              </button>
-            ))}
-          </div>
+          <h2>Новая игра</h2>
+          <p className="muted">Выбери пак и наслаждайся — включаем 30 секунд трека, угадывай на скорость.</p>
+          <span className="settings-label">Пак</span>
+          <PackPicker value={packId} onChange={setPackId} />
           <button className="btn btn-primary" onClick={handleCreate} disabled={busy}>
-            Создать лобби
+            Создать игру <Icon name="arrowRight" size={18} />
           </button>
         </section>
 
         <section className="card">
-          <h2>Присоединиться</h2>
-          <p className="muted">Введи 4-значный код лобби</p>
+          <h2>Игра по коду</h2>
+          <p className="muted">Прислали код? Введи его и присоединяйся.</p>
           <input
             className="code-input"
             inputMode="numeric"
@@ -92,7 +137,7 @@ export default function Home() {
             onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
           />
           <button className="btn btn-secondary" onClick={handleJoin} disabled={busy}>
-            Войти в лобби
+            Присоединиться
           </button>
         </section>
 
