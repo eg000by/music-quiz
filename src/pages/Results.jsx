@@ -7,6 +7,7 @@ import { resetLobby } from '../services/lobby';
 import { recordGameResult } from '../services/users';
 import { shareOrCopy } from '../services/share';
 import { STAGES } from '../services/scoring';
+import { getPack } from '../data/packs';
 import Icon from '../components/Icon';
 import trophy from '../assets/illustrations/trophy.svg';
 
@@ -79,6 +80,12 @@ export default function Results() {
   const winner = players.length > 0 ? players[0] : null;
   // ничья, если за первое место несколько игроков с одинаковым счётом
   const tie = players.length > 1 && players.filter((p) => p.score === winner.score).length > 1;
+  const solo = players.length === 1;
+  const rounds = log.length;
+  const scoreLine = players.map((p) => p.score).join(' : ');
+  const soloPacks = solo
+    ? (players[0].packs || []).map((id) => getPack(id)?.name).filter(Boolean).join(', ')
+    : '';
 
   const handleAgain = async () => {
     await resetLobby(code).catch(() => {});
@@ -102,21 +109,47 @@ export default function Results() {
     <div className="screen center">
       <div className="card results-card">
         <div className="results-illo"><img src={trophy} alt="" /></div>
-        <span className="eyebrow">{tie ? 'Итог матча' : 'Победитель'}</span>
-        <h1>{tie ? 'Ничья!' : `Победил ${winner?.name?.split(' ')[0]}`}</h1>
 
-        <div className="results-grid">
-          {players.map((p) => {
+        {solo ? (
+          <>
+            <span className="eyebrow">Партия окончена</span>
+            <h1>{players[0].score} очков</h1>
+            <p className="sub-line">{rounds} раундов{soloPacks && ` · ${soloPacks}`}</p>
+          </>
+        ) : tie ? (
+          <>
+            <span className="eyebrow">Итог матча</span>
+            <h1>Ничья!</h1>
+            <p className="sub-line">{scoreLine} · {rounds} раундов</p>
+          </>
+        ) : (
+          <>
+            <span className="eyebrow">Победитель</span>
+            <h1><span className="winner-name">{winner.name.split(' ')[0]}</span></h1>
+            <p className="sub-line">{scoreLine} · {rounds} раундов</p>
+          </>
+        )}
+
+        <div className={`results-grid${players.length > 1 ? ' two' : ''}`}>
+          {players.map((p, idx) => {
             const s = statsForPlayer(log, p.uid);
+            const isWinner = !tie && p.uid === winner.uid;
             return (
-              <div key={p.uid} className={`result-col ${p.uid === winner?.uid && !tie ? 'winner' : ''}`}>
-                <div className="result-head">
-                  {p.photo ? <img src={p.photo} alt="" className="avatar" /> : <div className="avatar ph">{p.name[0]}</div>}
-                  <span>{p.name.split(' ')[0]}</span>
-                </div>
-                <div className="big-score">{p.score}</div>
-                <div className="stat-line"><span>Угадано</span><b>{s.correct} / {log.length}</b></div>
-                <div className="stat-line"><span>Молниеносных (≤{STAGES[0].short})</span><b>{s.fast}</b></div>
+              <div key={p.uid} className={`result-col${isWinner || solo ? ' winner' : ''}`}>
+                {!solo && (
+                  <>
+                    <div className="result-head">
+                      {p.photo
+                        ? <img src={p.photo} alt="" className="avatar" />
+                        : <span className={`avatar ph${idx > 0 ? ' flame' : ''}`}>{(p.name || 'И')[0]}</span>}
+                      {p.name.split(' ')[0]}
+                      {isWinner && <Icon name="crown" size={14} className="crown" />}
+                    </div>
+                    <div className="big-score">{p.score}</div>
+                  </>
+                )}
+                <div className="stat-line"><span>Угадано</span><b>{s.correct} / {rounds}</b></div>
+                <div className="stat-line"><span>Молниеносных</span><b>{s.fast}</b></div>
                 <div className="stat-line">
                   <span>Среднее время</span>
                   <b>{s.avgTime != null ? `${(s.avgTime / 1000).toFixed(1)}с` : '—'}</b>
@@ -126,20 +159,17 @@ export default function Results() {
           })}
         </div>
 
-        <button className="btn btn-primary share-btn" onClick={handleShareResult}>
-          <Icon name="share" size={18} /> Поделиться результатом
-        </button>
-        {shareMsg && <p className="muted share-msg">{shareMsg}</p>}
-
-        <div className="results-actions">
+        <div className="actions">
           {isHost ? (
             <button className="btn btn-primary" onClick={handleAgain}><Icon name="rotate" size={18} /> Играть снова</button>
           ) : (
             <p className="muted">Хост может запустить новую игру</p>
           )}
-          <button className="btn btn-secondary" onClick={() => navigate('/leaderboard')}><Icon name="crown" size={18} /> Таблица лидеров</button>
-          <button className="btn-link" onClick={() => navigate('/')}>На главную</button>
+          <button className="btn btn-outline" onClick={() => navigate('/')}><Icon name="home" size={18} /> На главную</button>
         </div>
+
+        <button className="share-link" onClick={handleShareResult}><Icon name="share" size={15} /> Поделиться результатом</button>
+        {shareMsg && <p className="share-toast">{shareMsg}</p>}
       </div>
     </div>
   );
