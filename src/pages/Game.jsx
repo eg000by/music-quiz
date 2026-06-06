@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { submitAnswer, revealRound, advanceRound } from '../services/lobby';
-import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed, BOTH_ANSWERED_EXTRA_MS, REVEAL_MS, MIN_YEAR, MAX_YEAR_POINTS, yearPoints } from '../services/scoring';
+import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed, BOTH_ANSWERED_EXTRA_MS, REVEAL_MS, MIN_YEAR, yearPoints } from '../services/scoring';
 import { serverNow, syncClock } from '../services/clock';
 import { EvolutionPlayer, preload as preloadBuffer } from '../services/audioEngine';
 import Icon from '../components/Icon';
@@ -187,17 +187,17 @@ export default function Game() {
       atMs: Math.round(e),
       points: correct ? pointsForElapsed(e) : 0,
       correct,
-      // сохраняем уже сделанную догадку по году (название можно менять, год не сбрасываем)
-      year: myAnswer?.year ?? null,
-      yearPoints: myAnswer?.yearPoints ?? 0,
+      // год — это всегда текущее положение ползунка (сохраняется автоматически, без кнопки)
+      year: yearGuess,
+      yearPoints: yearPoints(yearGuess, round.year),
     };
     setMyAnswer(ans);
     submitAnswer(code, user.uid, ans).catch(() => {});
   };
 
-  // Второй шаг: игрок подтверждает год выпуска. Очки за год начисляются по близости
-  // и складываются с очками за название. Подтвердить можно только после выбора варианта.
-  const confirmYear = () => {
+  // Второй шаг: год выпуска. Кнопки подтверждения нет — последнее положение ползунка
+  // сохраняется само (на отпускании). Очки за год складываются с очками за название.
+  const commitYear = () => {
     if (reveal || !myAnswer) return;
     const yp = yearPoints(yearGuess, round.year);
     const ans = { ...myAnswer, year: yearGuess, yearPoints: yp };
@@ -324,25 +324,20 @@ export default function Game() {
         </div>
 
         {!reveal && myAnswer && hasYear && (
-          <div className="year-guess">
-            <div className="year-guess-head">
-              <span>Год выпуска: <b>{yearGuess}</b></span>
-              {myAnswer.year != null && (
-                <span className="year-locked"><Icon name="check" size={14} /> {myAnswer.year}</span>
-              )}
-            </div>
+          <div className="yearB">
+            <span className="yb-cap">Год выпуска трека</span>
+            <span className="yb-num">{yearGuess}</span>
             <input
-              className="year-slider"
+              className="yslider"
               type="range" min={MIN_YEAR} max={CURRENT_YEAR} step="1"
               value={yearGuess}
               onChange={(e) => setYearGuess(parseInt(e.target.value, 10))}
+              onPointerUp={commitYear}
+              onKeyUp={commitYear}
               aria-label="Год выпуска трека"
             />
-            <div className="year-scale"><span>{MIN_YEAR}</span><span>{CURRENT_YEAR}</span></div>
-            <button className="btn btn-secondary year-confirm" onClick={(e) => { e.currentTarget.blur(); confirmYear(); }}>
-              {myAnswer.year != null ? 'Обновить год' : 'Подтвердить год'}
-            </button>
-            <p className="muted year-hint">Точный год +{MAX_YEAR_POINTS}, дальше меньше</p>
+            <div className="yscale"><span>{MIN_YEAR}</span><span>{CURRENT_YEAR}</span></div>
+            <span className="auto-note"><span className="ico"><Icon name="check" size={13} /></span> Последний год зачтётся сам</span>
           </div>
         )}
 

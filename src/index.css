@@ -369,18 +369,19 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 .reveal-artist { color:var(--ink-60); }
 .reveal-year { margin-top:4px; font-weight:700; color:var(--flame); letter-spacing:.04em; }
 
-/* Второй шаг раунда — ползунок года выпуска */
-.year-guess {
-  width:100%; max-width:460px; display:flex; flex-direction:column; gap:8px;
-  padding:14px; border:1.5px solid var(--ink); border-radius:2px; background:var(--paper-pure);
-}
-.year-guess-head { display:flex; justify-content:space-between; align-items:center; font-size:14px; }
-.year-guess-head b { color:var(--flame); font-size:18px; }
-.year-locked { display:inline-flex; align-items:center; gap:4px; color:var(--green); font-weight:700; }
-.year-slider { width:100%; accent-color:var(--flame); cursor:pointer; }
-.year-scale { display:flex; justify-content:space-between; font-size:11px; color:var(--ink-60); }
-.year-confirm { width:100%; }
-.year-hint { text-align:center; margin:0; font-size:12px; }
+/* Второй шаг раунда — выбор года (вариант B): без рамки, крупная цифра, без кнопки,
+   последнее положение ползунка сохраняется автоматически. */
+.yearB { width:100%; max-width:460px; display:flex; flex-direction:column; align-items:center; gap:6px; }
+.yb-cap { font-size:11px; font-style:italic; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-60); }
+.yb-num { font-size:54px; font-weight:800; color:var(--flame); line-height:.95; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.yslider { -webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; cursor:pointer; }
+.yslider::-webkit-slider-runnable-track { height:6px; border-radius:999px; background:var(--ink-10); border:1.5px solid var(--ink-30); }
+.yslider::-moz-range-track { height:6px; border-radius:999px; background:var(--ink-10); border:1.5px solid var(--ink-30); }
+.yslider::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; margin-top:-10px; border-radius:50%; background:var(--flame); border:2px solid var(--ink); cursor:grab; }
+.yslider::-moz-range-thumb { width:20px; height:20px; border-radius:50%; background:var(--flame); border:2px solid var(--ink); cursor:grab; }
+.yscale { display:flex; justify-content:space-between; font-size:11px; color:var(--ink-60); margin-top:2px; width:100%; }
+.auto-note { display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--ink-60); margin-top:2px; }
+.auto-note .ico { color:var(--green); display:inline-flex; }
 
 .options { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; max-width:460px; }
 .option {
