@@ -32,12 +32,14 @@ export default function Lobby() {
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
+  const [leaving, setLeaving] = useState(false);
   const joiningRef = useRef(false);
+  const leavingRef = useRef(false);
 
   // Заход по ссылке-приглашению (/lobby/CODE) ведёт сюда напрямую, минуя join с
   // главной. Если игрока ещё нет в составе — добавляем его сам (один раз).
   useEffect(() => {
-    if (!lobby || !user?.uid) return;
+    if (!lobby || !user?.uid || leavingRef.current) return;
     if (lobby.players?.[user.uid]) { joiningRef.current = false; return; }
     if (joiningRef.current) return;
     joiningRef.current = true;
@@ -72,7 +74,7 @@ export default function Lobby() {
     if (res === 'copied' || res === 'failed') setTimeout(() => setShareMsg(''), 2500);
   };
 
-  if (loading) {
+  if (loading || leaving) {
     return <div className="screen center"><div className="spinner" /></div>;
   }
   if (!lobby) {
@@ -124,6 +126,8 @@ export default function Lobby() {
     togglePlayerPack(code, user.uid, packId, !myPacks.includes(packId)).catch(() => {});
 
   const handleLeave = async () => {
+    leavingRef.current = true;
+    setLeaving(true);
     await leaveLobby(code, user.uid).catch(() => {});
     navigate('/');
   };
