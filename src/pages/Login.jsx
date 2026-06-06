@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logoMark from '../assets/illustrations/logo-mark.svg';
 import vinyl from '../assets/illustrations/vinyl.svg';
@@ -7,6 +8,7 @@ import vinyl from '../assets/illustrations/vinyl.svg';
 // войти через Google. Как только появится пользователь, Gate сам покажет приложение.
 export default function Login() {
   const { signIn } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="screen center">
@@ -23,6 +25,9 @@ export default function Login() {
           <span className="g">G</span> Войти через Google
         </button>
         <p className="muted">Нужен только аккаунт Google.</p>
+        <button className="btn-link legal-link" onClick={() => navigate('/privacy')}>
+          Политика конфиденциальности
+        </button>
       </div>
     </div>
   );

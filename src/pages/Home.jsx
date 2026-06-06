@@ -148,6 +148,10 @@ export default function Home() {
         </section>
 
         {error && <div className="error">{error}</div>}
+
+        <button className="btn-link legal-link" onClick={() => navigate('/privacy')}>
+          Политика конфиденциальности
+        </button>
       </main>
     </div>
   );

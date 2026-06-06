@@ -145,6 +145,23 @@ export const PACKS = [
     ],
   },
   {
+    id: 'kpop',
+    name: 'K-pop',
+    icon: 'star',
+    songs: [
+      { title: 'Dynamite', artist: 'BTS' },
+      { title: 'Butter', artist: 'BTS' },
+      { title: 'Boy With Luv', artist: 'BTS' },
+      { title: 'DDU-DU DDU-DU', artist: 'BLACKPINK' },
+      { title: 'How You Like That', artist: 'BLACKPINK' },
+      { title: 'Kill This Love', artist: 'BLACKPINK' },
+      { title: 'Gangnam Style', artist: 'PSY' },
+      { title: 'Next Level', artist: 'aespa' },
+      { title: 'God\'s Menu', artist: 'Stray Kids' },
+      { title: 'Cupid', artist: 'FIFTY FIFTY' },
+    ],
+  },
+  {
     id: 'ru-rock',
     name: 'Русский рок',
     icon: 'zap',

@@ -11,6 +11,7 @@ const Lobby = lazy(() => import('./pages/Lobby'));
 const Game = lazy(() => import('./pages/Game'));
 const Results = lazy(() => import('./pages/Results'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
+const Privacy = lazy(() => import('./pages/Privacy'));
 
 function Spinner() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/game/:code" element={<Gate><Game /></Gate>} />
         <Route path="/results/:code" element={<Gate><Results /></Gate>} />
         <Route path="/leaderboard" element={<Gate><Leaderboard /></Gate>} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

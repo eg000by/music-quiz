@@ -36,7 +36,7 @@ function statsForPlayer(log, uid) {
 
 export default function Results() {
   const { code } = useParams();
-  const { user } = useAuth();
+  const { user, signIn } = useAuth();
   const { lobby, loading } = useLobby(code);
   const navigate = useNavigate();
   const recordedRef = useRef(false);
@@ -92,6 +92,15 @@ export default function Results() {
   const soloPacks = solo
     ? (players[0].packs || []).map((id) => getPack(id)?.name).filter(Boolean).join(', ')
     : '';
+
+  // Гость нажал «сохранить результат»: вход через Google привязывается к тому же uid,
+  // после чего разрешаем эффекту записать результат этой партии под аккаунтом.
+  const handleSignInToSave = async () => {
+    try {
+      await signIn();
+      recordedRef.current = false;
+    } catch { /* отменили вход — ничего не делаем */ }
+  };
 
   const handleAgain = async () => {
     await resetLobby(code).catch(() => {});
@@ -165,6 +174,15 @@ export default function Results() {
             );
           })}
         </div>
+
+        {user.isAnonymous && (
+          <div className="save-cta">
+            <p className="muted">Войди через Google, чтобы сохранить результат и попасть в таблицу лидеров.</p>
+            <button className="btn btn-google" onClick={handleSignInToSave}>
+              <span className="g">G</span> Сохранить результат
+            </button>
+          </div>
+        )}
 
         <div className="actions">
           {isHost ? (
