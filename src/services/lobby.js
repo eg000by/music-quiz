@@ -24,6 +24,7 @@ import { db } from '../firebase';
 import { searchTrack } from './tracksService';
 import { serverNow } from './clock';
 import { getPack } from '../data/packs';
+import { track } from './analytics';
 
 const DEFAULT_ROUNDS = 8;
 const MAX_PLAYERS = 4;
@@ -239,6 +240,12 @@ export async function startGame(code) {
     log: [],
     answers: {},
     current: { index: 0, phase: 'playing', startedAt: serverNow() },
+  });
+
+  track('game_start', {
+    rounds: rounds.length,
+    mode: lobby.mode || 'normal',
+    players: Object.keys(players).length,
   });
 }
 

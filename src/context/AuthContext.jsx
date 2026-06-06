@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import { ensureProfile } from '../services/users';
+import { track } from '../services/analytics';
 
 const AuthContext = createContext(null);
 
@@ -38,6 +39,7 @@ export function AuthProvider({ children }) {
         const res = await linkWithPopup(cur, googleProvider);
         setUser(res.user);
         ensureProfile(res.user).catch(() => {});
+        track('sign_in', { method: 'google', upgraded_from_guest: true });
         return;
       } catch (e) {
         // этот Google уже привязан к другому профилю — тогда просто входим им
@@ -49,6 +51,7 @@ export function AuthProvider({ children }) {
     const res = await signInWithPopup(auth, googleProvider);
     setUser(res.user);
     ensureProfile(res.user).catch(() => {});
+    track('sign_in', { method: 'google' });
   };
 
   const signOut = () => fbSignOut(auth);

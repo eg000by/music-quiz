@@ -15,6 +15,7 @@ import {
 } from '../services/lobby';
 import { syncClock } from '../services/clock';
 import { shareOrCopy } from '../services/share';
+import { track } from '../services/analytics';
 import Icon from '../components/Icon';
 
 const MIN_ROUNDS = 3;
@@ -43,6 +44,7 @@ export default function Lobby() {
     if (lobby.players?.[user.uid]) { joiningRef.current = false; return; }
     if (joiningRef.current) return;
     joiningRef.current = true;
+    track('invite_open', { code });
     joinLobby(code, user).catch((e) => setError(e.message || 'Не удалось войти в лобби'));
   }, [lobby, user, code]);
 
@@ -72,6 +74,7 @@ export default function Lobby() {
     else if (res === 'failed') setShareMsg('Не удалось поделиться');
     else setShareMsg('');
     if (res === 'copied' || res === 'failed') setTimeout(() => setShareMsg(''), 2500);
+    if (res !== 'failed') track('share', { content_type: 'invite', method: res });
   };
 
   if (loading || leaving) {

@@ -6,6 +6,7 @@ import { useLobby } from '../hooks/useLobby';
 import { resetLobby } from '../services/lobby';
 import { recordGameResult } from '../services/users';
 import { shareOrCopy } from '../services/share';
+import { track } from '../services/analytics';
 import { STAGES } from '../services/scoring';
 import { getPack } from '../data/packs';
 import Icon from '../components/Icon';
@@ -49,6 +50,11 @@ export default function Results() {
     if (!me) return;
     const maxScore = Math.max(...Object.values(players).map((p) => p.score || 0));
     recordedRef.current = true;
+    track('game_finish', {
+      score: me.score || 0,
+      solo: Object.keys(players).length === 1,
+      won: me.score === maxScore,
+    });
     recordGameResult(user, lobby.gameId, me.score || 0, me.score === maxScore).catch(() => {});
   }, [lobby, user]);
 
@@ -103,6 +109,7 @@ export default function Results() {
     else if (res === 'failed') setShareMsg('Не удалось поделиться');
     else setShareMsg('');
     if (res === 'copied' || res === 'failed') setTimeout(() => setShareMsg(''), 2500);
+    if (res !== 'failed') track('share', { content_type: 'result', method: res });
   };
 
   return (

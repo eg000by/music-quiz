@@ -1,5 +1,7 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { trackPage } from './services/analytics';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Lobby from './pages/Lobby';
@@ -24,6 +26,9 @@ function Gate({ children }) {
 }
 
 export default function App() {
+  const location = useLocation();
+  useEffect(() => { trackPage(location.pathname); }, [location.pathname]);
+
   return (
     <Routes>
       <Route path="/" element={<Gate><Home /></Gate>} />
