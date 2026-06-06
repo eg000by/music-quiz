@@ -25,14 +25,48 @@ service cloud.firestore {
     }
 
     // Лобби: читать может любой авторизованный (нужно гостям по коду).
-    // Создавать — только от своего имени; обновлять состояние партии может любой
-    // участник (гости пишут ответы, хост — фазы); это компенсируется App Check.
-    // Удалять активное лобби может только хост; лобби старше TTL — любой
-    // (ленивая сборка мусора чужих заброшенных лобби в cleanupOldLobbies).
     match /lobbies/{code} {
       allow read:   if signedIn();
       allow create: if signedIn() && request.resource.data.hostId == request.auth.uid;
-      allow update: if signedIn();
+
+      // Верхнеуровневые ключи, изменённые этой записью.
+      function changedKeys() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
+      // В map-поле `field` изменился только свой ключ (учитываем, что поля может
+      // ещё не быть — например, clockPings создаётся при первой синхронизации часов).
+      function onlyOwn(field) {
+        return !(field in request.resource.data) ? true
+          : !(field in resource.data) ? request.resource.data[field].keys().hasOnly([request.auth.uid])
+          : request.resource.data[field].diff(resource.data[field]).affectedKeys().hasOnly([request.auth.uid]);
+      }
+
+      // Запись разрешена, если ты:
+      //  • хост — полный контроль над своей партией (фазы, раунды, счёт, лог);
+      //  • участник — меняешь только свои players[uid]/answers[uid]/clockPings[uid]
+      //    (счёт себе менять нельзя — его выставляет хост на reveal);
+      //  • не участник — только присоединяешься (добавляешь себя со счётом 0).
+      // App Check отсекает запросы не от приложения; коды лобби 4-значные.
+      allow update: if signedIn() && (
+        resource.data.hostId == request.auth.uid
+        || (
+          request.auth.uid in resource.data.players
+          && changedKeys().hasOnly(['players', 'playerOrder', 'answers', 'clockPings'])
+          && onlyOwn('players') && onlyOwn('answers') && onlyOwn('clockPings')
+          && request.resource.data.players[request.auth.uid].score
+             == resource.data.players[request.auth.uid].score
+        )
+        || (
+          !(request.auth.uid in resource.data.players)
+          && changedKeys().hasOnly(['players', 'playerOrder'])
+          && request.auth.uid in request.resource.data.players
+          && onlyOwn('players')
+          && request.resource.data.players[request.auth.uid].score == 0
+        )
+      );
+
+      // Удалять активное лобби может только хост; лобби старше TTL — любой
+      // (ленивая сборка мусора чужих заброшенных лобби в cleanupOldLobbies).
       allow delete: if signedIn() && (
         resource.data.hostId == request.auth.uid ||
         resource.data.createdAt < request.time - lobbyTtl()
