@@ -7,6 +7,8 @@ import {
   orderBy,
   limit,
   getDocs,
+  setDoc,
+  increment,
   runTransaction,
   serverTimestamp,
 } from 'firebase/firestore';
@@ -21,20 +23,23 @@ export async function ensureProfile(user) {
   // Профиль появляется при входе через Google (после link uid и счёт сохраняются).
   if (!user || user.isAnonymous) return;
   const ref = doc(db, 'users', user.uid);
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    const base = {
+  // Без транзакции: merge обновляет имя/фото, а increment(0) создаёт счётчики при
+  // первом входе и не меняет их потом. Идемпотентно и устойчиво к гонкам — двойной
+  // вызов при входе (signIn + onAuthStateChanged после link) больше не роняет commit
+  // с failed-precondition, как это делала транзакция.
+  await setDoc(
+    ref,
+    {
       uid: user.uid,
       name: user.displayName || 'Игрок',
       photo: user.photoURL || null,
+      totalScore: increment(0),
+      gamesPlayed: increment(0),
+      wins: increment(0),
       updatedAt: serverTimestamp(),
-    };
-    if (snap.exists()) {
-      tx.set(ref, base, { merge: true });
-    } else {
-      tx.set(ref, { ...base, totalScore: 0, gamesPlayed: 0, wins: 0, recordedGames: [] });
-    }
-  });
+    },
+    { merge: true }
+  );
 }
 
 // Засчитывает результат завершённой партии в статистику игрока.
