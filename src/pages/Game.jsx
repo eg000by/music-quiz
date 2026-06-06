@@ -36,6 +36,15 @@ export default function Game() {
   const idx = current?.index;
   const mode = lobby?.mode || 'normal';
 
+  // reveal инициирует только хост и ровно один раз за раунд (оба таймера ниже могут
+  // сработать почти одновременно — этот guard не даёт начислить очки дважды).
+  const revealFiredRef = useRef(-1);
+  const fireReveal = (roundIdx) => {
+    if (revealFiredRef.current === roundIdx) return;
+    revealFiredRef.current = roundIdx;
+    revealRound(code).catch(() => {});
+  };
+
   const getEngine = () => {
     if (!engineRef.current) engineRef.current = new EvolutionPlayer();
     return engineRef.current;
@@ -136,7 +145,7 @@ export default function Game() {
     let t;
     if (phase === 'playing') {
       const remaining = ROUND_MS - (serverNow() - current.startedAt) + 300;
-      t = setTimeout(() => revealRound(code).catch(() => {}), Math.max(0, remaining));
+      t = setTimeout(() => fireReveal(idx), Math.max(0, remaining));
     } else if (phase === 'reveal') {
       t = setTimeout(() => advanceRound(code).catch(() => {}), REVEAL_MS);
     }
@@ -149,7 +158,7 @@ export default function Game() {
   useEffect(() => {
     if (!isHost || !current || phase !== 'playing') return;
     if (answerCount >= playerCount && playerCount > 0) {
-      const t = setTimeout(() => revealRound(code).catch(() => {}), BOTH_ANSWERED_EXTRA_MS);
+      const t = setTimeout(() => fireReveal(idx), BOTH_ANSWERED_EXTRA_MS);
       return () => clearTimeout(t);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

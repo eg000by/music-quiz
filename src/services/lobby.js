@@ -12,7 +12,6 @@ import {
   updateDoc,
   deleteDoc,
   onSnapshot,
-  runTransaction,
   serverTimestamp,
   Timestamp,
   increment,
@@ -258,23 +257,23 @@ export async function submitAnswer(code, uid, answer) {
 }
 
 // Хост: показать правильный ответ (фаза reveal) и начислить очки по финальным ответам.
-// Транзакция гарантирует, что очки начислятся ровно один раз, даже если два таймера
-// хоста (полное время раунда и «ответили оба + пауза») сработают почти одновременно.
+// Без транзакции: reveal инициирует только хост и ровно один раз за раунд (страховка
+// fireReveal в Game.jsx + проверка phase ниже), а очки начисляются через increment(),
+// поэтому read-modify-write не нужен. Раньше транзакция читала весь документ лобби и
+// падала с failed-precondition из-за параллельных записей ответов/часов во время раунда.
 export async function revealRound(code) {
   const ref = doc(db, 'lobbies', code);
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    const data = snap.data();
-    if (!data || !data.current || data.current.phase !== 'playing') return;
-    const answers = data.answers || {};
-    const updates = { 'current.phase': 'reveal' };
-    Object.entries(answers).forEach(([uid, a]) => {
-      // Итог раунда = очки за название + очки за год (год может быть и при неверном названии).
-      const total = (a?.points || 0) + (a?.yearPoints || 0);
-      if (total) updates[`players.${uid}.score`] = increment(total);
-    });
-    tx.update(ref, updates);
+  const snap = await getDoc(ref);
+  const data = snap.data();
+  if (!data || !data.current || data.current.phase !== 'playing') return;
+  const answers = data.answers || {};
+  const updates = { 'current.phase': 'reveal' };
+  Object.entries(answers).forEach(([uid, a]) => {
+    // Итог раунда = очки за название + очки за год (год может быть и при неверном названии).
+    const total = (a?.points || 0) + (a?.yearPoints || 0);
+    if (total) updates[`players.${uid}.score`] = increment(total);
   });
+  await updateDoc(ref, updates);
 }
 
 // Хост: перейти к следующему раунду либо завершить игру.
