@@ -2,9 +2,8 @@
    ВИКТОРИНА × EGORIY — index.css (вариант A)
    Плоский редакционный стиль: навигационный синий + два
    оранжевых на бумаге, без теней и градиентов. Шрифт Inter.
+   Шрифт Inter подключён через <link> в index.html (с preconnect).
    ============================================================ */
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap');
 
 :root {
   --ink:#0E1B3A; --ink-80:rgba(14,27,58,.80); --ink-60:rgba(14,27,58,.60);
@@ -462,8 +461,8 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
   border-top:1px solid var(--ink-10); display:flex; flex-direction:column; gap:8px; align-items:center;
 }
 
-/* ссылка на политику конфиденциальности */
-.legal-link { margin-top:14px; }
+/* ссылка на политику конфиденциальности (цвет чуть темнее ради контраста WCAG AA) */
+.legal-link { margin-top:14px; color:rgba(14,27,58,.72); }
 
 /* страница политики конфиденциальности */
 .legal { text-align:left; max-width:640px; }
