@@ -5,7 +5,7 @@ import { useLobby } from '../hooks/useLobby';
 import { submitAnswer, revealRound, advanceRound } from '../services/lobby';
 import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed, BOTH_ANSWERED_EXTRA_MS, REVEAL_MS, MIN_YEAR, yearPoints } from '../services/scoring';
 import { serverNow, syncClock } from '../services/clock';
-import { EvolutionPlayer, preload as preloadBuffer } from '../services/audioEngine';
+import { EvolutionPlayer, preload as preloadBuffer, unlockAudio } from '../services/audioEngine';
 import Icon from '../components/Icon';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -67,6 +67,17 @@ export default function Game() {
 
   // освобождаем аудио-движок при выходе из игры
   useEffect(() => () => { if (engineRef.current) engineRef.current.dispose(); }, []);
+
+  // iOS: разблокируем Web Audio на первом касании/клике в игре (для режима «Эволюция»)
+  useEffect(() => {
+    const h = () => unlockAudio();
+    document.addEventListener('touchend', h, { once: true });
+    document.addEventListener('click', h, { once: true });
+    return () => {
+      document.removeEventListener('touchend', h);
+      document.removeEventListener('click', h);
+    };
+  }, []);
 
   // измеряем смещение часов этого устройства относительно сервера для честного тайминга
   useEffect(() => {
@@ -231,6 +242,7 @@ export default function Game() {
 
   const resumeAudio = () => {
     if (mode === 'evolution') {
+      unlockAudio();
       getEngine().play(round.previewUrl, {
         elapsedMs: serverNow() - current.startedAt,
         roundMs: ROUND_MS,

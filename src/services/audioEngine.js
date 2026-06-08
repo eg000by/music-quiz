@@ -16,6 +16,24 @@ function audioCtx() {
   return ctx;
 }
 
+// iOS не запускает Web Audio, пока в рамках пользовательского жеста не проиграть
+// хоть какой-то звук. Дёргаем это на первом касании/клике — после этого режим
+// «Эволюция трека» (Web Audio) играет и в последующих раундах без overlay.
+let unlocked = false;
+export function unlockAudio() {
+  if (unlocked) return;
+  const c = audioCtx();
+  try {
+    const b = c.createBuffer(1, 1, 22050);
+    const s = c.createBufferSource();
+    s.buffer = b;
+    s.connect(c.destination);
+    s.start(0);
+  } catch { /* ignore */ }
+  if (c.state === 'suspended') c.resume().catch(() => {});
+  unlocked = true;
+}
+
 const cache = new Map(); // url -> AudioBuffer | Promise<AudioBuffer>
 
 // Загружает и декодирует превью (с кешем). CORS у превью iTunes разрешён (`*`).
