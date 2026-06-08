@@ -9,6 +9,8 @@
   --ink:#0E1B3A; --ink-80:rgba(14,27,58,.80); --ink-60:rgba(14,27,58,.60);
   --ink-30:rgba(14,27,58,.30); --ink-10:rgba(14,27,58,.10);
   --flame:#FF3A1D; --flame-press:#E5300F; --ember:#FF8A3D; --ember-press:#F0762B;
+  /* затемнённый флейм для поверхностей с белым текстом (контраст WCAG AA ≥4.5:1) */
+  --flame-cta:#D8300F; --flame-cta-press:#C12B0D;
   --paper:#FBF7F1; --paper-pure:#FFFFFF; --paper-press:#F1ECE2;
   --green:#1F8A4C; --red:#FF3A1D;
 
@@ -75,8 +77,8 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 .btn svg { flex:0 0 auto; }
 .btn:active { transform:translateY(1px); }
 .btn:disabled { opacity:.4; cursor:not-allowed; }
-.btn-primary { background:var(--flame); color:var(--paper-pure); }
-.btn-primary:hover:not(:disabled) { background:var(--flame-press); }
+.btn-primary { background:var(--flame-cta); color:var(--paper-pure); }
+.btn-primary:hover:not(:disabled) { background:var(--flame-cta-press); }
 .btn-secondary { background:var(--ink); color:var(--paper-pure); border:1.5px solid var(--ink); }
 .btn-secondary:hover:not(:disabled) { background:#1A2B55; }
 .btn-ghost { background:transparent; color:var(--ink-60); border:1.5px solid var(--ink-30); }
@@ -436,7 +438,7 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 .result-head { display:flex; align-items:center; justify-content:center; gap:8px; font-weight:600; font-size:13.5px; margin-bottom:8px; }
 .result-head .crown { color:var(--ember); flex:0 0 auto; display:flex; }
 .result-head .avatar { width:30px; height:30px; font-size:13px; }
-.avatar.flame { background:var(--flame); color:var(--paper-pure); }
+.avatar.flame { background:var(--flame-cta); color:var(--paper-pure); }
 .big-score { font-size:38px; font-weight:800; color:var(--flame); line-height:1; letter-spacing:-.02em; font-variant-numeric:tabular-nums; margin-bottom:10px; }
 .stat-line { display:flex; justify-content:space-between; align-items:baseline; font-size:12px; color:var(--ink-60); padding:5px 0; border-top:1px solid var(--ink-10); }
 .stat-line b { color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums; }
