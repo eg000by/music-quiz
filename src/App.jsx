@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { trackPage } from './services/analytics';
+import ConsentBanner from './components/ConsentBanner';
 
 // Экраны грузятся лениво (code-splitting): стартовый бандл не тянет код игры
 // (с аудио-движком), лобби, результатов и лидерборда, пока они не нужны.
@@ -36,8 +37,9 @@ export default function App() {
   useEffect(() => { trackPage(location.pathname); }, [location.pathname]);
 
   return (
-    <Suspense fallback={<Spinner />}>
-      <Routes>
+    <>
+      <Suspense fallback={<Spinner />}>
+        <Routes>
         <Route path="/" element={<Gate><Home /></Gate>} />
         <Route path="/lobby/:code" element={<Gate><Lobby /></Gate>} />
         <Route path="/game/:code" element={<Gate><Game /></Gate>} />
@@ -46,6 +48,8 @@ export default function App() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Suspense>
+      </Suspense>
+      <ConsentBanner />
+    </>
   );
 }
