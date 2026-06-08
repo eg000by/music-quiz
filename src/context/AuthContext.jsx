@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import {
-  signInWithPopup,
+  signInWithRedirect,
+  linkWithRedirect,
+  getRedirectResult,
   signInAnonymously,
-  linkWithPopup,
   signOut as fbSignOut,
   onAuthStateChanged,
 } from 'firebase/auth';
@@ -17,6 +18,16 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Завершаем редирект-вход, если вернулись от Google (попапы на мобильных блокируются).
+    getRedirectResult(auth)
+      .then((res) => {
+        if (res?.user) {
+          ensureProfile(res.user).catch(() => {});
+          track('sign_in', { method: 'google' });
+        }
+      })
+      .catch(() => { /* напр. credential-already-in-use при link гостя — игнорируем */ });
+
     return onAuthStateChanged(auth, (u) => {
       if (u) {
         setUser(u);
@@ -24,34 +35,22 @@ export function AuthProvider({ children }) {
         ensureProfile(u).catch(() => {});
       } else {
         // Гостевой вход без экрана логина: если пользователя нет — входим анонимно.
-        // Следующий onAuthStateChanged придёт уже с анонимным user (loading снимется там).
         signInAnonymously(auth).catch(() => setLoading(false));
       }
     });
   }, []);
 
-  // Вход через Google. Если сейчас гость (анонимный) — привязываем Google к тому же
-  // аккаунту, чтобы сохранить uid и накопленный счёт; иначе обычный вход.
+  // Вход через Google редиректом (надёжно на мобильных, в отличие от попапа).
+  // Гостя привязываем к тому же аккаунту через linkWithRedirect — uid и счёт сохраняются.
+  // Оба метода уводят страницу на Google и возвращают обратно; завершает вход
+  // getRedirectResult выше.
   const signIn = async () => {
     const cur = auth.currentUser;
     if (cur && cur.isAnonymous) {
-      try {
-        const res = await linkWithPopup(cur, googleProvider);
-        setUser(res.user);
-        ensureProfile(res.user).catch(() => {});
-        track('sign_in', { method: 'google', upgraded_from_guest: true });
-        return;
-      } catch (e) {
-        // этот Google уже привязан к другому профилю — тогда просто входим им
-        if (e?.code !== 'auth/credential-already-in-use' && e?.code !== 'auth/email-already-in-use') {
-          throw e;
-        }
-      }
+      await linkWithRedirect(cur, googleProvider);
+    } else {
+      await signInWithRedirect(auth, googleProvider);
     }
-    const res = await signInWithPopup(auth, googleProvider);
-    setUser(res.user);
-    ensureProfile(res.user).catch(() => {});
-    track('sign_in', { method: 'google' });
   };
 
   const signOut = () => fbSignOut(auth);

@@ -75,6 +75,9 @@ export class EvolutionPlayer {
   // Запуск/перезапуск раунда синхронно по времени. Возвращает true, если звук пошёл
   // (false → автоплей заблокирован, нужен жест пользователя).
   async play(url, { elapsedMs, roundMs, offsetSec }) {
+    // resume() инициируем СИНХРОННО, до await preload — иначе на iOS теряется
+    // пользовательский жест и AudioContext остаётся suspended (звук не идёт).
+    const resuming = this.resume();
     let buffer;
     try {
       buffer = await preload(url);
@@ -82,7 +85,7 @@ export class EvolutionPlayer {
       return false;
     }
     if (!buffer) return false;
-    const running = await this.resume();
+    const running = await resuming;
     this._stopSource();
 
     const now = this.ctx.currentTime;

@@ -40,22 +40,30 @@ export default function Results() {
   const { lobby, loading } = useLobby(code);
   const navigate = useNavigate();
   const recordedRef = useRef(false);
+  const finishTrackedRef = useRef(false);
   const [shareMsg, setShareMsg] = useState('');
 
-  // Записываем результат партии в таблицу лидеров (один раз за gameId).
+  // Записываем результат в таблицу лидеров. Аналитику game_finish шлём один раз для всех,
+  // а в лидерборд пишем только не-гостя — поэтому если гость войдёт через Google (uid тот
+  // же), эффект перезапустится с не-анонимным user и запишет партию.
   useEffect(() => {
-    if (!lobby || lobby.status !== 'finished' || !lobby.gameId || recordedRef.current) return;
+    if (!lobby || lobby.status !== 'finished' || !lobby.gameId) return;
     const players = lobby.players || {};
     const me = players[user.uid];
     if (!me) return;
     const maxScore = Math.max(...Object.values(players).map((p) => p.score || 0));
-    recordedRef.current = true;
-    track('game_finish', {
-      score: me.score || 0,
-      solo: Object.keys(players).length === 1,
-      won: me.score === maxScore,
-    });
-    recordGameResult(user, lobby.gameId, me.score || 0, me.score === maxScore).catch(() => {});
+    if (!finishTrackedRef.current) {
+      finishTrackedRef.current = true;
+      track('game_finish', {
+        score: me.score || 0,
+        solo: Object.keys(players).length === 1,
+        won: me.score === maxScore,
+      });
+    }
+    if (!recordedRef.current && !user.isAnonymous) {
+      recordedRef.current = true;
+      recordGameResult(user, lobby.gameId, me.score || 0, me.score === maxScore).catch(() => {});
+    }
   }, [lobby, user]);
 
   // хост нажал «Играть снова» (resetLobby → status waiting) — возвращаем в лобби всех,
@@ -93,13 +101,10 @@ export default function Results() {
     ? (players[0].packs || []).map((id) => getPack(id)?.name).filter(Boolean).join(', ')
     : '';
 
-  // Гость нажал «сохранить результат»: вход через Google привязывается к тому же uid,
-  // после чего разрешаем эффекту записать результат этой партии под аккаунтом.
-  const handleSignInToSave = async () => {
-    try {
-      await signIn();
-      recordedRef.current = false;
-    } catch { /* отменили вход — ничего не делаем */ }
+  // Гость нажал «сохранить результат»: уходим на Google (редирект). После возврата
+  // вход завершается, эффект выше видит не-анонимного user (uid тот же) и пишет партию.
+  const handleSignInToSave = () => {
+    signIn().catch(() => {});
   };
 
   const handleAgain = async () => {

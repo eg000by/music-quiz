@@ -207,6 +207,10 @@ export async function startGame(code) {
   if (songs.length < 1) {
     throw new Error('Выберите хотя бы один пак музыки');
   }
+  // Авторитетная проверка готовности (не полагаемся только на disabled у кнопки).
+  if (!Object.values(lobby.players || {}).every((p) => p.ready)) {
+    throw new Error('Не все игроки готовы');
+  }
   const totalRounds = lobby.roundCount || DEFAULT_ROUNDS;
 
   await updateDoc(ref, { status: 'loading' });

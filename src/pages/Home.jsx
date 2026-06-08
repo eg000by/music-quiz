@@ -141,6 +141,7 @@ export default function Home() {
             placeholder="1234"
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleJoin(); }}
           />
           <button className="btn btn-secondary" onClick={handleJoin} disabled={busy}>
             Присоединиться

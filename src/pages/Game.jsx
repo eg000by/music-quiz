@@ -28,6 +28,8 @@ export default function Game() {
     return Number.isFinite(v) ? v : 1;
   });
   const prevVolRef = useRef(volume || 1);
+  const yearTimerRef = useRef(null);
+  const myAnswerRef = useRef(null);
 
   const current = lobby?.current;
   const round = current ? lobby?.rounds?.[current.index] : null;
@@ -75,8 +77,13 @@ export default function Game() {
   useEffect(() => {
     setMyAnswer(null);
     setYearGuess(DEFAULT_YEAR);
+    if (yearTimerRef.current) clearTimeout(yearTimerRef.current);
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }, [idx]);
+
+  // держим актуальный ответ в ref — чтобы отложенное сохранение года не затирало
+  // только что выбранное название и не зависело от устаревшего замыкания
+  useEffect(() => { myAnswerRef.current = myAnswer; }, [myAnswer]);
 
   // управление аудио (два пути: обычный <audio> и движок «Эволюция трека»)
   useEffect(() => {
@@ -204,14 +211,22 @@ export default function Game() {
     submitAnswer(code, user.uid, ans).catch(() => {});
   };
 
-  // Второй шаг: год выпуска. Кнопки подтверждения нет — последнее положение ползунка
-  // сохраняется само (на отпускании). Очки за год складываются с очками за название.
-  const commitYear = () => {
-    if (reveal || !myAnswer) return;
-    const yp = yearPoints(yearGuess, round.year);
-    const ans = { ...myAnswer, year: yearGuess, yearPoints: yp };
+  // Второй шаг: год выпуска. Кнопки подтверждения нет — год сохраняется сам.
+  const commitYear = (year) => {
+    const cur = myAnswerRef.current;
+    if (phase === 'reveal' || !cur) return;
+    const ans = { ...cur, year, yearPoints: yearPoints(year, round.year) };
     setMyAnswer(ans);
     submitAnswer(code, user.uid, ans).catch(() => {});
+  };
+
+  // onChange ползунка обновляет число сразу, а год сохраняем с дебаунсом после остановки
+  // движения — на Android событие «отпускания» (pointerup) часто не срабатывает.
+  const onYearChange = (e) => {
+    const v = parseInt(e.target.value, 10);
+    setYearGuess(v);
+    if (yearTimerRef.current) clearTimeout(yearTimerRef.current);
+    yearTimerRef.current = setTimeout(() => commitYear(v), 300);
   };
 
   const resumeAudio = () => {
@@ -340,9 +355,9 @@ export default function Game() {
               className="yslider"
               type="range" min={MIN_YEAR} max={CURRENT_YEAR} step="1"
               value={yearGuess}
-              onChange={(e) => setYearGuess(parseInt(e.target.value, 10))}
-              onPointerUp={commitYear}
-              onKeyUp={commitYear}
+              onChange={onYearChange}
+              onPointerUp={(e) => commitYear(parseInt(e.target.value, 10))}
+              onTouchEnd={(e) => commitYear(parseInt(e.target.value, 10))}
               aria-label="Год выпуска трека"
             />
             <div className="yscale"><span>{MIN_YEAR}</span><span>{CURRENT_YEAR}</span></div>
