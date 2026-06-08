@@ -18,32 +18,50 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Завершаем редирект-вход, если вернулись от Google (попапы на мобильных блокируются).
+    // ВАЖНО: при возврате с Google onAuthStateChanged может сработать с null ДО того,
+    // как getRedirectResult завершит вход. Если в этот момент сразу войти анонимно —
+    // результат входа через Google потеряется (и вход «молча не работает»). Поэтому
+    // анонимный вход откладываем до завершения обработки редиректа.
+    let redirectResolved = false;
+    let pendingAnon = false;
+
+    const anonIfNeeded = () => {
+      if (!auth.currentUser) signInAnonymously(auth).catch(() => setLoading(false));
+    };
+
     getRedirectResult(auth)
       .then((res) => {
         if (res?.user) {
+          // setUser напрямую: при linkWithRedirect uid не меняется, поэтому
+          // onAuthStateChanged может не сработать, и UI остался бы «гостевым».
+          setUser(res.user);
+          setLoading(false);
           ensureProfile(res.user).catch(() => {});
           track('sign_in', { method: 'google' });
         }
       })
-      .catch(() => { /* напр. credential-already-in-use при link гостя — игнорируем */ });
+      .catch(() => { /* напр. credential-already-in-use при link гостя — игнорируем */ })
+      .finally(() => {
+        redirectResolved = true;
+        if (pendingAnon) anonIfNeeded();
+      });
 
     return onAuthStateChanged(auth, (u) => {
       if (u) {
         setUser(u);
         setLoading(false);
         ensureProfile(u).catch(() => {});
+      } else if (redirectResolved) {
+        anonIfNeeded();
       } else {
-        // Гостевой вход без экрана логина: если пользователя нет — входим анонимно.
-        signInAnonymously(auth).catch(() => setLoading(false));
+        // ждём getRedirectResult, чтобы не перебить незавершённый вход через Google
+        pendingAnon = true;
       }
     });
   }, []);
 
   // Вход через Google редиректом (надёжно на мобильных, в отличие от попапа).
   // Гостя привязываем к тому же аккаунту через linkWithRedirect — uid и счёт сохраняются.
-  // Оба метода уводят страницу на Google и возвращают обратно; завершает вход
-  // getRedirectResult выше.
   const signIn = async () => {
     const cur = auth.currentUser;
     if (cur && cur.isAnonymous) {
