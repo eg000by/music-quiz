@@ -3,7 +3,9 @@ import {
   signInWithRedirect,
   linkWithRedirect,
   getRedirectResult,
+  signInWithCredential,
   signInAnonymously,
+  GoogleAuthProvider,
   signOut as fbSignOut,
   onAuthStateChanged,
 } from 'firebase/auth';
@@ -18,10 +20,9 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ВАЖНО: при возврате с Google onAuthStateChanged может сработать с null ДО того,
-    // как getRedirectResult завершит вход. Если в этот момент сразу войти анонимно —
-    // результат входа через Google потеряется (и вход «молча не работает»). Поэтому
-    // анонимный вход откладываем до завершения обработки редиректа.
+    // При возврате с Google onAuthStateChanged может сработать с null ДО завершения
+    // getRedirectResult. Если в этот момент войти анонимно — результат Google потеряется.
+    // Поэтому анонимный вход откладываем до завершения обработки редиректа.
     let redirectResolved = false;
     let pendingAnon = false;
 
@@ -29,18 +30,30 @@ export function AuthProvider({ children }) {
       if (!auth.currentUser) signInAnonymously(auth).catch(() => setLoading(false));
     };
 
+    // setUser напрямую: при linkWithRedirect uid не меняется → onAuthStateChanged может
+    // не сработать, и UI остался бы «гостевым».
+    const applyGoogleUser = (u) => {
+      setUser(u);
+      setLoading(false);
+      ensureProfile(u).catch(() => {});
+      track('sign_in', { method: 'google' });
+    };
+
     getRedirectResult(auth)
       .then((res) => {
-        if (res?.user) {
-          // setUser напрямую: при linkWithRedirect uid не меняется, поэтому
-          // onAuthStateChanged может не сработать, и UI остался бы «гостевым».
-          setUser(res.user);
-          setLoading(false);
-          ensureProfile(res.user).catch(() => {});
-          track('sign_in', { method: 'google' });
+        if (res?.user) applyGoogleUser(res.user);
+      })
+      .catch((error) => {
+        // Гость привязывает Google, который уже привязан к другому аккаунту (этот
+        // пользователь раньше входил через Google) → входим в существующий аккаунт
+        // по credential из ошибки.
+        const cred = GoogleAuthProvider.credentialFromError(error);
+        if (cred && (error?.code === 'auth/credential-already-in-use'
+          || error?.code === 'auth/email-already-in-use')) {
+          return signInWithCredential(auth, cred).then((res) => applyGoogleUser(res.user));
         }
       })
-      .catch(() => { /* напр. credential-already-in-use при link гостя — игнорируем */ })
+      .catch(() => { /* и тут не падаем — просто останемся гостем */ })
       .finally(() => {
         redirectResolved = true;
         if (pendingAnon) anonIfNeeded();
@@ -54,7 +67,6 @@ export function AuthProvider({ children }) {
       } else if (redirectResolved) {
         anonIfNeeded();
       } else {
-        // ждём getRedirectResult, чтобы не перебить незавершённый вход через Google
         pendingAnon = true;
       }
     });
