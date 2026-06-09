@@ -52,6 +52,9 @@ function toTrack(r) {
     previewUrl: r.previewUrl,
     artwork: hiResArtwork(r.artworkUrl100),
     year: releaseYear(r),
+    // Ссылка на страницу трека: по условиям iTunes Search API рядом с превью
+    // должна быть ссылка-бейдж на трек в магазине (см. экран «Трек дня»).
+    url: r.trackViewUrl || null,
   };
 }
 

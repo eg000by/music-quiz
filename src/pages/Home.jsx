@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { PACKS } from '../data/packs';
 import { createLobby, joinLobby } from '../services/lobby';
+import { dayNumber, getStreak, loadDailyState } from '../services/daily';
 import Icon from '../components/Icon';
 import logoMark from '../assets/illustrations/logo-mark.svg';
 
@@ -121,6 +122,16 @@ export default function Home() {
       </header>
 
       <main className="home">
+        <button className="daily-banner" onClick={() => navigate('/daily')}>
+          <span className="db-ico"><Icon name="music" size={22} /></span>
+          <span className="db-text">
+            <b>Трек дня #{dayNumber()}</b>
+            <span>{loadDailyState()?.done ? 'Сегодня сыграно — смотри результат' : 'Один трек · 5 попыток · новый каждый день'}</span>
+          </span>
+          {getStreak() > 1 && <span className="db-streak">🔥 {getStreak()}</span>}
+          <Icon name="arrowRight" size={18} />
+        </button>
+
         <section className="card">
           <h2>Новая игра</h2>
           <p className="muted">Выбери пак и наслаждайся — включаем 30 секунд трека, угадывай на скорость.</p>

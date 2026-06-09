@@ -537,3 +537,70 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
   .code-display { font-size:46px; letter-spacing:6px; }
   .pack-grid { grid-template-columns:1fr 1fr; }
 }
+
+/* ============ Трек дня (ежедневный челлендж) ============ */
+.daily-banner {
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+  background:var(--ink); color:var(--paper-pure); border:1.5px solid var(--ink);
+  border-radius:14px; padding:14px 16px; cursor:pointer; font:inherit;
+  transition:background var(--dur-base) var(--ease);
+}
+.daily-banner:hover { background:#1A2B55; }
+.daily-banner:active { transform:translateY(1px); }
+.db-ico { display:grid; place-items:center; width:40px; height:40px; border-radius:10px; background:var(--flame-cta); flex:0 0 auto; }
+.db-text { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+.db-text b { font-size:16px; }
+.db-text span { font-size:12.5px; opacity:.75; }
+.db-streak { font-weight:700; font-size:14px; background:rgba(255,255,255,.12); border-radius:999px; padding:4px 10px; flex:0 0 auto; }
+
+.daily-card { width:min(440px, 100%); display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; }
+.back-link { align-self:flex-start; display:inline-flex; align-items:center; gap:6px; background:none; border:none; cursor:pointer; font:inherit; font-size:13px; color:var(--ink-60); padding:0; }
+.back-link:hover { color:var(--ink); }
+.daily-center { display:flex; flex-direction:column; align-items:center; gap:12px; padding:24px 0; }
+.daily-title { font-size:24px; }
+
+.daily-cells { display:flex; gap:8px; }
+.dc {
+  width:34px; height:34px; border-radius:9px; display:grid; place-items:center;
+  border:1.5px solid var(--ink-30); color:var(--ink-60); font-weight:700; font-size:14px;
+}
+.dc-cur { border-color:var(--ink); border-style:dashed; }
+.dc-w { background:var(--flame-cta); border-color:var(--flame-cta); color:#fff; }
+.dc-s { background:var(--paper-press); color:var(--ink-60); }
+.dc-c { background:var(--green); border-color:var(--green); color:#fff; }
+
+.daily-play {
+  display:inline-flex; align-items:center; gap:10px; font:inherit; font-weight:700; font-size:16px;
+  background:var(--flame-cta); color:#fff; border:none; border-radius:999px;
+  padding:14px 26px; cursor:pointer; margin-top:4px;
+}
+.daily-play:hover { background:var(--flame-cta-press); }
+.daily-play:active { transform:translateY(1px); }
+.daily-meter { width:100%; height:6px; border-radius:3px; background:var(--ink-10); overflow:hidden; }
+.dm-fill { height:100%; background:var(--ember); border-radius:3px; transition:width .3s var(--ease); }
+.daily-hint { font-size:13px; }
+
+.daily-input {
+  width:100%; font:inherit; font-size:16px; padding:12px 14px;
+  border:1.5px solid var(--ink); border-radius:12px; background:var(--paper-pure); color:var(--ink);
+}
+.daily-input:focus { outline:2px solid var(--ember); outline-offset:1px; }
+.daily-suggest { list-style:none; width:100%; border:1.5px solid var(--ink); border-radius:12px; overflow:hidden; }
+.daily-suggest li + li { border-top:1px solid var(--ink-10); }
+.daily-suggest button {
+  display:block; width:100%; text-align:left; font:inherit; font-size:14.5px;
+  background:var(--paper-pure); border:none; padding:10px 14px; cursor:pointer; color:var(--ink);
+}
+.daily-suggest button:hover { background:var(--paper-press); }
+.daily-skip { width:100%; }
+
+.daily-reveal { display:flex; align-items:center; gap:14px; width:100%; text-align:left; margin-top:4px; }
+.daily-art { width:72px; height:72px; border-radius:12px; object-fit:cover; border:1.5px solid var(--ink-10); flex:0 0 auto; }
+.daily-art.ph { display:grid; place-items:center; background:var(--paper-press); color:var(--ink-30); }
+.daily-track { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.daily-track b { font-size:18px; }
+.daily-outcome { font-size:26px; }
+.daily-streak { font-weight:700; font-size:15px; }
+.daily-courtesy { display:flex; flex-direction:column; gap:2px; font-size:12px; color:var(--ink-60); }
+.daily-courtesy a { color:var(--ink); font-weight:600; }
+.daily-next { font-size:13px; }
