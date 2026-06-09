@@ -13,10 +13,17 @@ service cloud.firestore {
     // Лобби живёт ограниченное время (см. LOBBY_TTL_MS в src/services/lobby.js).
     function lobbyTtl() { return duration.value(6, 'h'); }
 
-    // Базовая валидность документа профиля: счётчики — неотрицательные целые,
-    // побед не больше партий, история партий ограничена 100 элементами.
+    // См. MAX_PLAYERS в src/services/lobby.js.
+    function maxPlayers() { return 4; }
+
+    // Базовая валидность документа профиля: только ожидаемые поля, имя/фото разумного
+    // размера, счётчики — неотрицательные целые, побед не больше партий, история партий
+    // ограничена 100 элементами.
     function validUserData(data) {
-      return data.totalScore is int && data.totalScore >= 0
+      return data.keys().hasOnly(['uid', 'name', 'photo', 'totalScore', 'gamesPlayed', 'wins', 'recordedGames', 'updatedAt'])
+        && data.name is string && data.name.size() <= 100
+        && (data.photo == null || (data.photo is string && data.photo.size() <= 500))
+        && data.totalScore is int && data.totalScore >= 0
         && data.gamesPlayed is int && data.gamesPlayed >= 0
         && data.wins is int && data.wins >= 0
         && data.wins <= data.gamesPlayed
@@ -26,8 +33,16 @@ service cloud.firestore {
 
     // Лобби: читать может любой авторизованный (нужно гостям по коду).
     match /lobbies/{code} {
-      allow read:   if signedIn();
-      allow create: if signedIn() && request.resource.data.hostId == request.auth.uid;
+      allow read: if signedIn();
+
+      // Создать можно только своё лобби в статусе waiting и только с собой в составе.
+      // createdAt — строго серверное время: иначе можно поставить дату в будущем и
+      // сделать «вечное» лобби, которое не попадёт под TTL-чистку.
+      allow create: if signedIn()
+        && request.resource.data.hostId == request.auth.uid
+        && request.resource.data.status == 'waiting'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.players.keys().hasOnly([request.auth.uid]);
 
       // Верхнеуровневые ключи, изменённые этой записью.
       function changedKeys() {
@@ -41,11 +56,55 @@ service cloud.firestore {
           : request.resource.data[field].diff(resource.data[field]).affectedKeys().hasOnly([request.auth.uid]);
       }
 
+      // Свой объект игрока (если после записи он остаётся в составе): только ожидаемые
+      // поля и разумные размеры — чтобы участник не мог раздуть документ лобби к лимиту
+      // 1 МБ и сломать игру всем.
+      function ownPlayerOk() {
+        return !(request.auth.uid in request.resource.data.players)
+          || (
+            request.resource.data.players[request.auth.uid].keys().hasOnly(['uid', 'name', 'photo', 'score', 'ready', 'packs'])
+            && request.resource.data.players[request.auth.uid].name is string
+            && request.resource.data.players[request.auth.uid].name.size() <= 100
+            && request.resource.data.players[request.auth.uid].packs is list
+            && request.resource.data.players[request.auth.uid].packs.size() <= 30
+          );
+      }
+
+      // Свой счёт менять нельзя — его начисляет хост на reveal. Сравниваем только если
+      // игрок остаётся в составе: при выходе из лобби поля players[uid] в новой версии
+      // нет, и безусловное сравнение роняло бы запись выхода.
+      function ownScoreUnchanged() {
+        return !(request.auth.uid in request.resource.data.players)
+          || request.resource.data.players[request.auth.uid].score
+             == resource.data.players[request.auth.uid].score;
+      }
+
+      // Свой ответ: очки в допустимых пределах, и очки за название — только при верном
+      // варианте (correctIndex текущего раунда лежит в этом же документе). Подделать
+      // ответ «мимо, но +100 очков» нельзя; завысить yearPoints выше шкалы — тоже.
+      function ownAnswerOk() {
+        return !('answers' in request.resource.data)
+          || !(request.auth.uid in request.resource.data.answers)
+          || (
+            request.resource.data.answers[request.auth.uid].points is int
+            && request.resource.data.answers[request.auth.uid].points >= 0
+            && request.resource.data.answers[request.auth.uid].points <= 100
+            && request.resource.data.answers[request.auth.uid].yearPoints is int
+            && request.resource.data.answers[request.auth.uid].yearPoints >= 0
+            && request.resource.data.answers[request.auth.uid].yearPoints <= 50
+            && (request.resource.data.answers[request.auth.uid].points == 0
+                || request.resource.data.answers[request.auth.uid].choice
+                   == resource.data.rounds[resource.data.current.index].correctIndex)
+          );
+      }
+
       // Запись разрешена, если ты:
       //  • хост — полный контроль над своей партией (фазы, раунды, счёт, лог);
-      //  • участник — меняешь только свои players[uid]/answers[uid]/clockPings[uid]
-      //    (счёт себе менять нельзя — его выставляет хост на reveal);
-      //  • не участник — только присоединяешься (добавляешь себя со счётом 0).
+      //  • участник — меняешь только свои players[uid]/answers[uid]/clockPings[uid],
+      //    счёт себе не трогаешь, ответы — только во время раунда и в пределах шкалы,
+      //    из playerOrder можешь убрать только себя (выход из лобби);
+      //  • не участник — только присоединяешься (со счётом 0, пока лобби в ожидании
+      //    и есть свободное место).
       // App Check отсекает запросы не от приложения; коды лобби 4-значные.
       allow update: if signedIn() && (
         resource.data.hostId == request.auth.uid
@@ -53,15 +112,25 @@ service cloud.firestore {
           request.auth.uid in resource.data.players
           && changedKeys().hasOnly(['players', 'playerOrder', 'answers', 'clockPings'])
           && onlyOwn('players') && onlyOwn('answers') && onlyOwn('clockPings')
-          && request.resource.data.players[request.auth.uid].score
-             == resource.data.players[request.auth.uid].score
+          && ownScoreUnchanged()
+          && ownPlayerOk()
+          && ownAnswerOk()
+          && (!changedKeys().hasAny(['answers'])
+              || resource.data.current.phase == 'playing')
+          && (request.resource.data.playerOrder == resource.data.playerOrder
+              || request.resource.data.playerOrder == resource.data.playerOrder.removeAll([request.auth.uid]))
         )
         || (
           !(request.auth.uid in resource.data.players)
+          && resource.data.status == 'waiting'
+          && request.resource.data.players.size() <= maxPlayers()
           && changedKeys().hasOnly(['players', 'playerOrder'])
           && request.auth.uid in request.resource.data.players
           && onlyOwn('players')
           && request.resource.data.players[request.auth.uid].score == 0
+          && ownPlayerOk()
+          && (request.resource.data.playerOrder == resource.data.playerOrder.concat([request.auth.uid])
+              || request.resource.data.playerOrder == resource.data.playerOrder)
         )
       );
 
@@ -80,11 +149,13 @@ service cloud.firestore {
       allow read: if signedIn();
 
       allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.uid == uid
         && validUserData(request.resource.data)
         && request.resource.data.totalScore <= maxGameScore()
         && request.resource.data.gamesPlayed <= 1;
 
       allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.uid == uid
         && validUserData(request.resource.data)
         && request.resource.data.totalScore >= resource.data.totalScore
         && request.resource.data.totalScore <= resource.data.totalScore + maxGameScore()
