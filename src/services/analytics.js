@@ -4,14 +4,23 @@
 const GA_ID = import.meta.env.VITE_GA_ID;
 const CONSENT_KEY = 'mq_analytics_consent';
 let loaded = false;
+// Запасное согласие на текущую сессию: если localStorage недоступен (приватный
+// режим), выбор хотя бы не теряется до перезагрузки и баннер не появляется снова.
+let memoryConsent = null;
 
 // 'granted' | 'denied' | null (ещё не выбрал)
 export function getConsent() {
-  try { return localStorage.getItem(CONSENT_KEY); } catch { return null; }
+  try {
+    const v = localStorage.getItem(CONSENT_KEY);
+    if (v) return v;
+  } catch { /* ignore */ }
+  return memoryConsent;
 }
 
 export function setConsent(granted) {
-  try { localStorage.setItem(CONSENT_KEY, granted ? 'granted' : 'denied'); } catch { /* ignore */ }
+  const value = granted ? 'granted' : 'denied';
+  memoryConsent = value;
+  try { localStorage.setItem(CONSENT_KEY, value); } catch { /* ignore */ }
   if (granted) initAnalytics();
 }
 
@@ -31,7 +40,7 @@ export function initAnalytics() {
 
 // Произвольное событие воронки. Безопасно вызывать всегда (no-op без согласия/GA_ID).
 export function track(event, params) {
-  if (!GA_ID || typeof window === 'undefined' || typeof window.gtag !== 'function') return;
+  if (!GA_ID || getConsent() !== 'granted' || typeof window === 'undefined' || typeof window.gtag !== 'function') return;
   window.gtag('event', event, params || {});
 }
 

@@ -76,7 +76,6 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 }
 .btn svg { flex:0 0 auto; }
 .btn:active { transform:translateY(1px); }
-.btn:disabled { opacity:.4; cursor:not-allowed; }
 .btn-primary { background:var(--flame-cta); color:var(--paper-pure); }
 .btn-primary:hover:not(:disabled) { background:var(--flame-cta-press); }
 .btn-secondary { background:var(--ink); color:var(--paper-pure); border:1.5px solid var(--ink); }
