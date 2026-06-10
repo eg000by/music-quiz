@@ -58,15 +58,32 @@ function shuffle(arr) {
   return a;
 }
 
-function playerObj(user) {
+function playerObj(user, fallbackName = 'Игрок') {
   return {
     uid: user.uid,
-    name: user.displayName || 'Игрок',
+    name: user.displayName || fallbackName,
     photo: user.photoURL || null,
     score: 0,
     ready: false,
     packs: [], // предпочитаемые паки этого игрока (объединяются в общий пул игры)
   };
+}
+
+// Свободный ник для гостя без имени — «Игрок 1», «Игрок 2», … — чтобы анонимы
+// в одном лобби различались. Берём наименьший незанятый номер.
+function anonName(players) {
+  const used = new Set(Object.values(players).map((p) => p.name));
+  for (let i = 1; i <= MAX_PLAYERS * 2; i++) {
+    if (!used.has(`Игрок ${i}`)) return `Игрок ${i}`;
+  }
+  return 'Игрок';
+}
+
+// Короткое имя для плашек со счётом: длинные имена Google режем до первого слова,
+// а «Игрок 2» оставляем целиком (иначе все гости снова станут одинаковыми «Игрок»).
+export function shortName(name) {
+  const n = (name || 'Игрок').trim();
+  return n.length <= 12 ? n : n.split(' ')[0];
 }
 
 // Собирает общий пул песен из паков, выбранных всеми игроками (объединение, без дублей).
@@ -98,7 +115,7 @@ export async function createLobby(user, pack) {
       hostId: user.uid,
       hostName: user.displayName || 'Игрок',
       status: 'waiting', // waiting | loading | playing | finished
-      players: { [user.uid]: { ...playerObj(user), ready: true, packs: pack ? [pack.id] : [] } },
+      players: { [user.uid]: { ...playerObj(user, 'Игрок 1'), ready: true, packs: pack ? [pack.id] : [] } },
       playerOrder: [user.uid],
       roundCount: DEFAULT_ROUNDS,
       mode: 'normal', // normal | evolution
@@ -126,7 +143,7 @@ export async function joinLobby(code, user) {
   if (!already && Object.keys(players).length >= MAX_PLAYERS) throw new Error(`Лобби заполнено (${MAX_PLAYERS} игрока)`);
   if (!already) {
     await updateDoc(ref, {
-      [`players.${user.uid}`]: playerObj(user),
+      [`players.${user.uid}`]: playerObj(user, anonName(players)),
       playerOrder: arrayUnion(user.uid),
     });
   }
@@ -249,6 +266,29 @@ export async function startGame(code) {
     rounds: rounds.length,
     mode: lobby.mode || 'normal',
     players: Object.keys(players).length,
+  });
+}
+
+// Хост ставит раунд на паузу: фиксируем серверный момент остановки. У всех игроков
+// elapsed считается от startedAt, поэтому при паузе таймер замирает в одной точке.
+export async function pauseRound(code) {
+  const ref = doc(db, 'lobbies', code);
+  const snap = await getDoc(ref);
+  const cur = snap.data()?.current;
+  if (!cur || cur.phase !== 'playing' || cur.pausedAt) return;
+  await updateDoc(ref, { 'current.pausedAt': serverNow() });
+}
+
+// Хост снимает паузу: сдвигаем startedAt на длительность паузы — прогресс и этапы
+// очков продолжаются ровно с того места, где остановились.
+export async function resumeRound(code) {
+  const ref = doc(db, 'lobbies', code);
+  const snap = await getDoc(ref);
+  const cur = snap.data()?.current;
+  if (!cur || !cur.pausedAt) return;
+  await updateDoc(ref, {
+    'current.startedAt': cur.startedAt + (serverNow() - cur.pausedAt),
+    'current.pausedAt': deleteField(),
   });
 }
 

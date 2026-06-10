@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
   SNIPPETS, POINTS, MAX_TRIES,
   dayNumber, dateKey, allSongs, resolveDailyTrack,
-  loadDailyState, saveDailyState, getStreak, bumpStreak, shareText,
+  loadDailyState, saveDailyState, getStreak, bumpStreak, adoptStreak, shareText,
 } from '../services/daily';
+import { useAuth } from '../context/AuthContext';
+import { fetchProfile, saveDailyStreak } from '../services/users';
 import { shareOrCopy } from '../services/share';
 import { track as trackEvent } from '../services/analytics';
 import Icon from '../components/Icon';
@@ -14,6 +16,7 @@ const DONATE_URL = import.meta.env.VITE_DONATE_URL;
 
 export default function Daily() {
   const navigate = useNavigate();
+  const { user, signIn } = useAuth();
   const [phase, setPhase] = useState('loading'); // loading | error | play | done
   const [answer, setAnswer] = useState(null);    // песня из пака (title — правильный ответ)
   const [meta, setMeta] = useState(null);        // трек из iTunes (превью, обложка, год, ссылка)
@@ -59,6 +62,26 @@ export default function Daily() {
     if (audioRef.current) audioRef.current.pause();
   }, []);
 
+  // Стрик зарегистрированного игрока живёт и в профиле: подтягиваем его с другого
+  // устройства и дописываем обратно, если локальный «живее» (в т.ч. после входа
+  // через Google уже сыгранным днём).
+  useEffect(() => {
+    if (!user || user.isAnonymous) return;
+    let cancelled = false;
+    (async () => {
+      const p = await fetchProfile(user.uid);
+      if (cancelled) return;
+      if (p?.dailyLast && p.dailyStreak) adoptStreak(p.dailyLast, p.dailyStreak);
+      const cur = getStreak();
+      setStreak(cur);
+      const today = loadDailyState();
+      if (today?.done && cur && (p?.dailyLast !== dateKey() || (p?.dailyStreak || 0) < cur)) {
+        saveDailyStreak(user, cur, dateKey()).catch(() => {});
+      }
+    })().catch(() => {});
+    return () => { cancelled = true; };
+  }, [user]);
+
   const attempt = st ? Math.min(st.guesses.length, MAX_TRIES - 1) : 0;
   const unlocked = SNIPPETS[attempt];
 
@@ -87,7 +110,9 @@ export default function Daily() {
     saveDailyState(next);
     setSt(next);
     setPhase('done');
-    setStreak(bumpStreak());
+    const count = bumpStreak();
+    setStreak(count);
+    saveDailyStreak(user, count, dateKey()).catch(() => {});
     trackEvent('daily_finish', { day: next.day, won, attempts: guesses.length, score });
     playSnippet(0); // на финале даём послушать превью целиком
   };
@@ -235,6 +260,11 @@ export default function Daily() {
               ))}
             </div>
             {streak > 0 && <p className="daily-streak">🔥 Стрик: {streak} {streak === 1 ? 'день' : streak < 5 ? 'дня' : 'дней'}</p>}
+            {user?.isAnonymous && streak > 0 && (
+              <button className="btn-link" onClick={() => signIn().catch(() => {})}>
+                Войди через Google — стрик сохранится в профиле
+              </button>
+            )}
 
             <button className="daily-play" onClick={playing ? stopAudio : () => playSnippet(0)}>
               <Icon name={playing ? 'x' : 'play'} size={20} />

@@ -619,3 +619,53 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
   transition:background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 .donate-link:hover { background:var(--paper-press); color:var(--ink); }
+
+/* ============ Пауза в игре ============ */
+.pause-overlay {
+  position:fixed; inset:0; z-index:90;
+  background:rgba(251,247,241,.82); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center; padding:22px;
+}
+.pause-card {
+  background:var(--paper-pure); border:1.5px solid var(--ink); border-radius:var(--r-lg);
+  padding:26px 30px; display:flex; flex-direction:column; align-items:center; gap:10px;
+  width:min(320px, 100%); text-align:center;
+}
+.pause-card b { font-size:22px; }
+.pause-ico {
+  width:52px; height:52px; border-radius:50%; display:grid; place-items:center;
+  background:var(--paper-press); color:var(--ink);
+}
+
+/* ============ Шкала лет на reveal ============ */
+.year-reveal { width:100%; max-width:460px; padding:6px 0 2px; }
+.yr-bar {
+  position:relative; height:8px; border-radius:999px;
+  background:var(--ink-10); border:1.5px solid var(--ink-30);
+  margin:30px 10px 22px;
+}
+.yr-target {
+  position:absolute; top:-8px; bottom:-8px; width:3px; transform:translateX(-50%);
+  background:var(--flame-cta); border-radius:2px;
+}
+.yr-flag {
+  position:absolute; top:100%; margin-top:5px; left:50%; transform:translateX(-50%);
+  font-size:12px; font-weight:800; color:var(--flame-cta); white-space:nowrap;
+}
+.yr-mark { position:absolute; top:50%; transform:translate(-50%,-50%); z-index:1; }
+.yr-dot {
+  display:block; width:15px; height:15px; border-radius:50%;
+  border:2.5px solid var(--paper-pure); box-shadow:0 0 0 1.5px var(--ink-30);
+}
+.yr-mark.c0 .yr-dot { background:var(--ink); }
+.yr-mark.c1 .yr-dot { background:var(--ember); }
+.yr-mark.c2 .yr-dot { background:var(--green); }
+.yr-mark.c3 .yr-dot { background:#7A4FD0; }
+.yr-mark.hit .yr-dot { box-shadow:0 0 0 3px rgba(31,138,76,.3); }
+.yr-name {
+  position:absolute; bottom:100%; margin-bottom:6px; left:50%; transform:translateX(-50%);
+  font-size:11px; font-weight:700; white-space:nowrap; color:var(--ink-80);
+  background:var(--paper-pure); border:1px solid var(--ink-10); border-radius:999px; padding:1px 7px;
+}
+.yr-name.up { margin-bottom:24px; }
+.year-reveal .yscale { padding:0 10px; }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
-import { resetLobby } from '../services/lobby';
+import { resetLobby, shortName } from '../services/lobby';
 import { recordGameResult } from '../services/users';
 import { shareOrCopy } from '../services/share';
 import { track } from '../services/analytics';
@@ -146,7 +146,7 @@ export default function Results() {
         ) : (
           <>
             <span className="eyebrow">Победитель</span>
-            <h1><span className="winner-name">{winner.name.split(' ')[0]}</span></h1>
+            <h1><span className="winner-name">{shortName(winner.name)}</span></h1>
             <p className="sub-line">{scoreLine} · {rounds} раундов</p>
           </>
         )}
@@ -163,7 +163,7 @@ export default function Results() {
                       {p.photo
                         ? <img src={p.photo} alt="" className="avatar" />
                         : <span className={`avatar ph${idx > 0 ? ' flame' : ''}`}>{(p.name || 'И')[0]}</span>}
-                      {p.name.split(' ')[0]}
+                      {shortName(p.name)}
                       {isWinner && <Icon name="crown" size={14} className="crown" />}
                     </div>
                     <div className="big-score">{p.score}</div>

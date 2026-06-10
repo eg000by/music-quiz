@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
-import { submitAnswer, revealRound, advanceRound } from '../services/lobby';
+import { submitAnswer, revealRound, advanceRound, pauseRound, resumeRound, shortName } from '../services/lobby';
 import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed, BOTH_ANSWERED_EXTRA_MS, REVEAL_MS, MIN_YEAR, yearPoints } from '../services/scoring';
 import { serverNow, syncClock } from '../services/clock';
 import { EvolutionPlayer, preload as preloadBuffer, unlockAudio } from '../services/audioEngine';
@@ -10,6 +10,12 @@ import Icon from '../components/Icon';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const DEFAULT_YEAR = 2010; // стартовое положение ползунка года (большинство треков из этой эпохи)
+
+// Позиция года на шкале MIN_YEAR..CURRENT_YEAR в процентах (для маркеров на reveal).
+function yearPct(year) {
+  const pct = ((year - MIN_YEAR) / (CURRENT_YEAR - MIN_YEAR)) * 100;
+  return Math.max(0, Math.min(100, pct));
+}
 
 export default function Game() {
   const { code } = useParams();
@@ -37,6 +43,7 @@ export default function Game() {
   const phase = current?.phase;
   const idx = current?.index;
   const mode = lobby?.mode || 'normal';
+  const paused = !!current?.pausedAt;
 
   // reveal инициирует только хост и ровно один раз за раунд (оба таймера ниже могут
   // сработать почти одновременно — этот guard не даёт начислить очки дважды).
@@ -103,6 +110,7 @@ export default function Game() {
     if (mode === 'evolution') {
       const engine = getEngine();
       if (phase === 'playing') {
+        if (paused) { engine.stop(); return; }
         engine.setVolume(volume);
         engine.play(round.previewUrl, {
           elapsedMs: serverNow() - current.startedAt,
@@ -120,6 +128,7 @@ export default function Game() {
     const audio = audioRef.current;
     if (!audio) return;
     if (phase === 'playing') {
+      if (paused) { audio.pause(); return; }
       if (audio.src !== round.previewUrl) {
         audio.src = round.previewUrl;
       }
@@ -138,7 +147,7 @@ export default function Game() {
       audio.pause();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, phase, mode]);
+  }, [idx, phase, mode, paused]);
 
   // в режиме эволюции заранее декодируем следующий трек, чтобы раунд начался без паузы
   useEffect(() => {
@@ -159,7 +168,7 @@ export default function Game() {
   const playerCount = Object.keys(players).length;
 
   useEffect(() => {
-    if (!isHost || !current || lobby?.status !== 'playing') return;
+    if (!isHost || !current || lobby?.status !== 'playing' || paused) return;
     let t;
     if (phase === 'playing') {
       const remaining = ROUND_MS - (serverNow() - current.startedAt) + 300;
@@ -169,18 +178,18 @@ export default function Game() {
     }
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost, idx, phase, lobby?.status]);
+  }, [isHost, idx, phase, lobby?.status, paused]);
 
   // ХОСТ: когда ответили все — даём ещё несколько секунд (можно поменять ответ),
   // затем показываем правильный ответ.
   useEffect(() => {
-    if (!isHost || !current || phase !== 'playing') return;
+    if (!isHost || !current || phase !== 'playing' || paused) return;
     if (answerCount >= playerCount && playerCount > 0) {
       const t = setTimeout(() => fireReveal(idx), BOTH_ANSWERED_EXTRA_MS);
       return () => clearTimeout(t);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost, answerCount, playerCount, phase, idx]);
+  }, [isHost, answerCount, playerCount, phase, idx, paused]);
 
   if (!lobby || lobby.status === 'loading') {
     return (
@@ -196,7 +205,8 @@ export default function Game() {
 
   const reveal = phase === 'reveal';
   const hasYear = round.year != null; // у некоторых треков iTunes нет releaseDate — тогда шаг года пропускаем
-  const elapsed = reveal ? ROUND_MS : Math.min(ROUND_MS, now - current.startedAt);
+  // на паузе таймер замирает в серверной точке остановки — одинаково у всех игроков
+  const elapsed = reveal ? ROUND_MS : Math.min(ROUND_MS, (paused ? current.pausedAt : now) - current.startedAt);
   const stage = stageForElapsed(elapsed);
   const stageInfo = stage === -1 ? null : STAGES[stage];
   const progress = Math.min(100, (elapsed / ROUND_MS) * 100);
@@ -205,7 +215,7 @@ export default function Game() {
   const playerList = lobby.playerOrder.map((uid) => lobby.players[uid]).filter(Boolean);
 
   const pick = (i) => {
-    if (reveal) return;
+    if (reveal || paused) return;
     if (myAnswer && myAnswer.choice === i) return; // тот же вариант — ничего не меняем
     const e = serverNow() - current.startedAt;
     const correct = i === round.correctIndex;
@@ -225,7 +235,7 @@ export default function Game() {
   // Второй шаг: год выпуска. Кнопки подтверждения нет — год сохраняется сам.
   const commitYear = (year) => {
     const cur = myAnswerRef.current;
-    if (phase === 'reveal' || !cur) return;
+    if (phase === 'reveal' || paused || !cur) return;
     const ans = { ...cur, year, yearPoints: yearPoints(year, round.year) };
     setMyAnswer(ans);
     submitAnswer(code, user.uid, ans).catch(() => {});
@@ -275,6 +285,16 @@ export default function Game() {
 
       <header className="game-head">
         <span className="round-counter">Раунд {current.index + 1} / {lobby.totalRounds}</span>
+        {isHost && phase === 'playing' && (
+          <button
+            className="vol-btn"
+            onClick={() => (paused ? resumeRound(code) : pauseRound(code)).catch(() => {})}
+            aria-label={paused ? 'Продолжить' : 'Пауза'}
+            title={paused ? 'Продолжить' : 'Пауза'}
+          >
+            <Icon name={paused ? 'play' : 'pause'} size={18} />
+          </button>
+        )}
         <div className="vol">
           <button className="vol-btn" onClick={toggleMute} aria-label="Громкость">
             <Icon name={volume === 0 ? 'volumeX' : 'volume'} size={18} />
@@ -290,7 +310,7 @@ export default function Game() {
         <div className="scores">
           {playerList.map((p) => (
             <span key={p.uid} className="score-chip">
-              {p.name.split(' ')[0]}: <b>{p.score}</b>
+              {shortName(p.name)}: <b>{p.score}</b>
             </span>
           ))}
         </div>
@@ -334,6 +354,32 @@ export default function Game() {
             <div className="reveal-title">{round.title}</div>
             <div className="reveal-artist">{round.artist}</div>
             {hasYear && <div className="reveal-year">{round.year}</div>}
+          </div>
+        )}
+
+        {/* Шкала лет: правильный год + маркеры догадок каждого игрока */}
+        {reveal && hasYear && (
+          <div className="year-reveal">
+            <div className="yr-bar">
+              <span className="yr-target" style={{ left: `${yearPct(round.year)}%` }}>
+                <span className="yr-flag">{round.year}</span>
+              </span>
+              {playerList.map((p, i) => {
+                const a = answers[p.uid];
+                if (!a || a.year == null) return null;
+                return (
+                  <span
+                    key={p.uid}
+                    className={`yr-mark c${i % 4}${a.year === round.year ? ' hit' : ''}`}
+                    style={{ left: `${yearPct(a.year)}%` }}
+                  >
+                    <span className={`yr-name${i % 2 ? ' up' : ''}`}>{shortName(p.name)}</span>
+                    <span className="yr-dot" />
+                  </span>
+                );
+              })}
+            </div>
+            <div className="yscale"><span>{MIN_YEAR}</span><span>{CURRENT_YEAR}</span></div>
           </div>
         )}
 
@@ -392,7 +438,7 @@ export default function Game() {
               const yd = hasYear && a && a.year != null ? a.year - round.year : null;
               return (
                 <div key={p.uid} className="rr-row">
-                  <span>{p.name.split(' ')[0]}</span>
+                  <span>{shortName(p.name)}</span>
                   {a ? (
                     <span className={a.correct ? 'ok' : 'bad'}>
                       {a.correct ? `+${a.points} (${(a.atMs / 1000).toFixed(1)}с)` : 'мимо'}
@@ -412,10 +458,26 @@ export default function Game() {
         )}
       </main>
 
-      {needTap && !reveal && (
+      {needTap && !reveal && !paused && (
         <button className="tap-overlay" onClick={resumeAudio}>
           <Icon name="play" size={15} /> Нажми, чтобы слушать
         </button>
+      )}
+
+      {paused && !reveal && (
+        <div className="pause-overlay">
+          <div className="pause-card">
+            <span className="pause-ico"><Icon name="pause" size={26} /></span>
+            <b>Пауза</b>
+            {isHost ? (
+              <button className="btn btn-primary" onClick={() => resumeRound(code).catch(() => {})}>
+                <Icon name="play" size={18} /> Продолжить
+              </button>
+            ) : (
+              <p className="muted">Хост поставил игру на паузу</p>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

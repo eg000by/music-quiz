@@ -95,6 +95,27 @@ export function getStreak() {
   }
 }
 
+// Слияние стрика из профиля (другое устройство) с локальным. Берём более «живой»
+// и длинный; если сегодня уже сыграно локально, а профиль кончается вчера —
+// профильный стрик продолжается сегодняшней партией (+1).
+export function adoptStreak(last, count) {
+  try {
+    const today = dateKey();
+    const yesterday = dateKey(new Date(Date.now() - 864e5));
+    if (!count || (last !== today && last !== yesterday)) return;
+    const s = JSON.parse(localStorage.getItem(STREAK_KEY) || 'null');
+    const localAlive = s && (s.last === today || s.last === yesterday);
+    if (!localAlive) {
+      localStorage.setItem(STREAK_KEY, JSON.stringify({ last, count }));
+    } else if (s.last === today && last === yesterday) {
+      localStorage.setItem(STREAK_KEY, JSON.stringify({ last: today, count: Math.max(s.count, count + 1) }));
+    } else {
+      const newLast = s.last >= last ? s.last : last;
+      localStorage.setItem(STREAK_KEY, JSON.stringify({ last: newLast, count: Math.max(s.count, count) }));
+    }
+  } catch { /* ignore */ }
+}
+
 // Засчитывает сегодняшнюю партию в стрик. Идемпотентно в рамках дня.
 export function bumpStreak() {
   try {

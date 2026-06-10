@@ -6,6 +6,7 @@ import {
   query,
   orderBy,
   limit,
+  getDoc,
   getDocs,
   setDoc,
   increment,
@@ -70,6 +71,27 @@ export async function recordGameResult(user, gameId, score, won) {
       { merge: true }
     );
   });
+}
+
+// Профиль игрока (нужен «Треку дня», чтобы подтянуть стрик с другого устройства).
+export async function fetchProfile(uid) {
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    return snap.exists() ? snap.data() : null;
+  } catch {
+    return null;
+  }
+}
+
+// Сохраняет стрик «Трека дня» в профиль зарегистрированного игрока, чтобы он
+// не терялся при смене устройства/браузера. Гостям профиль не пишем (см. ensureProfile).
+export async function saveDailyStreak(user, count, last) {
+  if (!user || user.isAnonymous || !count || !last) return;
+  await setDoc(
+    doc(db, 'users', user.uid),
+    { uid: user.uid, dailyStreak: count, dailyLast: last, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
 }
 
 // Топ игроков по сумме очков.

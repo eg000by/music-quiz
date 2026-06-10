@@ -20,7 +20,7 @@ service cloud.firestore {
     // размера, счётчики — неотрицательные целые, побед не больше партий, история партий
     // ограничена 100 элементами.
     function validUserData(data) {
-      return data.keys().hasOnly(['uid', 'name', 'photo', 'totalScore', 'gamesPlayed', 'wins', 'recordedGames', 'updatedAt'])
+      return data.keys().hasOnly(['uid', 'name', 'photo', 'totalScore', 'gamesPlayed', 'wins', 'recordedGames', 'updatedAt', 'dailyStreak', 'dailyLast'])
         && data.name is string && data.name.size() <= 100
         && (data.photo == null || (data.photo is string && data.photo.size() <= 500))
         && data.totalScore is int && data.totalScore >= 0
@@ -28,7 +28,10 @@ service cloud.firestore {
         && data.wins is int && data.wins >= 0
         && data.wins <= data.gamesPlayed
         && (!('recordedGames' in data)
-            || (data.recordedGames is list && data.recordedGames.size() <= 100));
+            || (data.recordedGames is list && data.recordedGames.size() <= 100))
+        // стрик «Трека дня»: счётчик + дата последней партии (YYYY-MM-DD)
+        && (!('dailyStreak' in data) || (data.dailyStreak is int && data.dailyStreak >= 0))
+        && (!('dailyLast' in data) || (data.dailyLast is string && data.dailyLast.size() <= 10));
     }
 
     // Лобби: читать может любой авторизованный (нужно гостям по коду).
