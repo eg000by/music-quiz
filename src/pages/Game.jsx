@@ -167,11 +167,24 @@ export default function Game() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, phase, mode, paused]);
 
-  // в режиме эволюции заранее декодируем следующий трек, чтобы раунд начался без паузы
+  // Прелоад следующего раунда, чтобы он начинался без буферизации (на медленной
+  // сети иначе теряются первые «дорогие» секунды): эволюция декодирует буфер,
+  // обычный режим прогревает HTTP-кэш — <audio> потом берёт превью из кэша.
+  // Заодно префетчим обложку текущего раунда: reveal показывает её мгновенно.
+  const warmedRef = useRef(new Set());
   useEffect(() => {
-    if (mode !== 'evolution' || !lobby?.rounds) return;
+    if (!lobby?.rounds || !current) return;
+    const cur = lobby.rounds[idx];
+    if (cur?.artwork) { new Image().src = cur.artwork; }
     const next = lobby.rounds[idx + 1];
-    if (next?.previewUrl) preloadBuffer(next.previewUrl).catch(() => {});
+    if (!next?.previewUrl || warmedRef.current.has(next.previewUrl)) return;
+    warmedRef.current.add(next.previewUrl);
+    if (mode === 'evolution') {
+      preloadBuffer(next.previewUrl).catch(() => {});
+    } else {
+      fetch(next.previewUrl).then((r) => r.arrayBuffer()).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, mode, lobby?.rounds]);
 
   // переход на экран результатов

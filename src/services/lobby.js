@@ -184,16 +184,23 @@ export async function setLobbyMode(code, mode) {
 async function buildRounds(songs, n) {
   const pool = shuffle(songs);
   const resolved = [];
-  for (const song of pool) {
-    if (resolved.length >= n) break;
-    try {
-      const track = await searchTrack(song);
-      if (track && track.previewUrl) {
-        resolved.push({ ...track, packTitle: song.title });
+  // Ищем треки батчами параллельно, а не по одному: для 8 раундов это сокращает
+  // «Загружаем треки…» с ~8–15 секунд (цепочка JSONP-запросов) до пары секунд.
+  // Батч ограничен, чтобы не бомбить iTunes API десятками одновременных запросов.
+  const BATCH = 5;
+  for (let i = 0; i < pool.length && resolved.length < n; i += BATCH) {
+    const batch = pool.slice(i, i + BATCH);
+    const found = await Promise.all(batch.map(async (song) => {
+      try {
+        const track = await searchTrack(song);
+        return track && track.previewUrl ? { ...track, packTitle: song.title } : null;
+      } catch {
+        return null; // трек не найден — пропускаем
       }
-    } catch {
-      // трек не найден — пропускаем
-    }
+    }));
+    found.forEach((t) => {
+      if (t && resolved.length < n) resolved.push(t);
+    });
   }
 
   const allTitles = songs.map((s) => s.title);
@@ -232,6 +239,7 @@ export async function startGame(code) {
 
   await updateDoc(ref, { status: 'loading' });
 
+  const loadStart = Date.now();
   let rounds;
   try {
     rounds = await buildRounds(songs, totalRounds);
@@ -266,6 +274,7 @@ export async function startGame(code) {
     rounds: rounds.length,
     mode: lobby.mode || 'normal',
     players: Object.keys(players).length,
+    load_ms: Date.now() - loadStart, // мониторим скорость загрузки треков в GA
   });
 }
 
