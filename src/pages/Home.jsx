@@ -99,7 +99,7 @@ export default function Home() {
             <b>Трек дня #{dayNumber()}</b>
             <span>{loadDailyState()?.done ? 'Сегодня сыграно — смотри результат' : 'Один трек · 5 попыток · новый каждый день'}</span>
           </span>
-          {getStreak() > 1 && <span className="db-streak">🔥 {getStreak()}</span>}
+          {getStreak() > 1 && <span className="db-streak"><Icon name="flame" size={13} fill="currentColor" /> {getStreak()}</span>}
           <Icon name="arrowRight" size={18} />
         </button>
 

@@ -557,7 +557,8 @@ button.brand { background:none; border:none; padding:0; color:var(--ink); font-f
 .db-text { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
 .db-text b { font-size:16px; }
 .db-text span { font-size:12.5px; opacity:.75; }
-.db-streak { font-weight:700; font-size:14px; background:rgba(255,255,255,.12); border-radius:999px; padding:4px 10px; flex:0 0 auto; }
+.db-streak { display:inline-flex; align-items:center; gap:5px; font-weight:700; font-size:14px; background:rgba(255,255,255,.12); border-radius:999px; padding:4px 10px 4px 9px; flex:0 0 auto; }
+.db-streak svg { color:var(--ember); }
 
 /* Трек дня — Вариант C (таймлайн попыток) */
 .daily-card { width:min(440px, 100%); display:flex; flex-direction:column; align-items:stretch; gap:14px; padding:20px 18px 22px; }
@@ -608,10 +609,8 @@ button.brand { background:none; border:none; padding:0; color:var(--ink); font-f
 .drow-lbl span { color:var(--ink-60); font-weight:400; }
 .drow-pts { font-size:12px; font-weight:700; color:var(--ink-30); flex:0 0 auto; }
 
-/* будущие, ещё не использованные попытки — компактные, чтобы не раздували карточку */
-.drow.empty { border-style:dashed; min-height:0; padding:7px 13px; }
+.drow.empty { border-style:dashed; }
 .drow.empty .drow-lbl { color:var(--ink-30); font-weight:500; }
-.drow.empty .drow-ico { width:16px; height:16px; }
 .drow.empty .drow-ico,
 .drow.cur .drow-ico { border:1.5px dashed var(--ink-30); }
 .drow.cur { border-color:var(--ink); background:var(--paper-pure); }
