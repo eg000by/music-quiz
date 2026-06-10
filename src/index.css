@@ -598,7 +598,7 @@ button.brand { background:none; border:none; padding:0; color:var(--ink); font-f
 /* строки попыток — таймлайн */
 .daily-rows { width:100%; display:flex; flex-direction:column; gap:8px; }
 .drow {
-  display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+  display:flex; flex-flow:row nowrap; align-items:center; gap:11px; width:100%; text-align:left;
   border:1.5px solid var(--ink-10); border-radius:var(--r-md); padding:11px 13px;
   background:var(--paper); min-height:52px;
 }
@@ -608,8 +608,10 @@ button.brand { background:none; border:none; padding:0; color:var(--ink); font-f
 .drow-lbl span { color:var(--ink-60); font-weight:400; }
 .drow-pts { font-size:12px; font-weight:700; color:var(--ink-30); flex:0 0 auto; }
 
-.drow.empty { border-style:dashed; }
+/* будущие, ещё не использованные попытки — компактные, чтобы не раздували карточку */
+.drow.empty { border-style:dashed; min-height:0; padding:7px 13px; }
 .drow.empty .drow-lbl { color:var(--ink-30); font-weight:500; }
+.drow.empty .drow-ico { width:16px; height:16px; }
 .drow.empty .drow-ico,
 .drow.cur .drow-ico { border:1.5px dashed var(--ink-30); }
 .drow.cur { border-color:var(--ink); background:var(--paper-pure); }
