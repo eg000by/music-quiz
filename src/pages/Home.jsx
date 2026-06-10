@@ -4,6 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { PACKS } from '../data/packs';
 import { createLobby, joinLobby } from '../services/lobby';
 import { dayNumber, getStreak, loadDailyState } from '../services/daily';
+import { track } from '../services/analytics';
+
+const DONATE_URL = import.meta.env.VITE_DONATE_URL;
 import Icon from '../components/Icon';
 import logoMark from '../assets/illustrations/logo-mark.svg';
 
@@ -161,9 +164,32 @@ export default function Home() {
 
         {error && <div className="error">{error}</div>}
 
-        <button className="btn-link legal-link" onClick={() => navigate('/privacy')}>
-          Политика конфиденциальности
-        </button>
+        <section className="seo-note">
+          <h3>Что такое Egorii?</h3>
+          <p>
+            Egorii — бесплатная музыкальная викторина онлайн. Угадывай песню по 30-секундному
+            отрывку и год её выпуска: создай лобби, отправь друзьям 4-значный код — и соревнуйтесь
+            в реальном времени. Или заходи каждый день в «Трек дня», держи стрик и делись
+            результатом. Паки на любой вкус: мировые хиты, рок-классика, русская эстрада, K-pop.
+          </p>
+        </section>
+
+        <div className="foot-links">
+          {DONATE_URL && (
+            <a
+              className="donate-link"
+              href={DONATE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => track('donate_click', { from: 'home' })}
+            >
+              <Icon name="heart" size={14} /> Поддержать проект
+            </a>
+          )}
+          <button className="btn-link legal-link" onClick={() => navigate('/privacy')}>
+            Политика конфиденциальности
+          </button>
+        </div>
       </main>
     </div>
   );

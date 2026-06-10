@@ -46,7 +46,17 @@
     <meta name="twitter:image" content="https://egorii.fun/og.png" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Статичный текст для поисковиков (Яндекс плохо исполняет JS) и медленных
+           соединений. React при монтировании заменяет содержимое #root целиком. -->
+      <div style="max-width:560px;margin:0 auto;padding:48px 22px;font-family:'Inter',system-ui,sans-serif;color:#0E1B3A;line-height:1.55">
+        <h1 style="font-size:30px;line-height:1.1;margin-bottom:14px">Egorii — музыкальная викторина онлайн</h1>
+        <p style="margin-bottom:10px">Угадай песню по 30-секундному отрывку и год её выпуска. Играй бесплатно прямо в браузере — один или с друзьями: создай лобби, отправь 4-значный код, и соревнуйтесь в реальном времени, кто быстрее узнает трек.</p>
+        <p style="margin-bottom:10px">Каждый день — новый <a href="/daily" style="color:#D8300F">«Трек дня»</a>: один трек на всех, пять попыток, с каждой попыткой открывается более длинный отрывок. Угадывай, держи стрик и делись результатом с друзьями.</p>
+        <p style="margin-bottom:10px">Паки музыки на любой вкус: мировые хиты, рок-классика, русская эстрада и поп, K-pop и другие. Режим «Эволюция трека» — звук проясняется к концу раунда: чем раньше угадаешь, тем больше очков.</p>
+        <p style="color:rgba(14,27,58,.6)">Загружаем игру…</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

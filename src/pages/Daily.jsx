@@ -10,6 +10,7 @@ import { track as trackEvent } from '../services/analytics';
 import Icon from '../components/Icon';
 
 const FULL_SNIPPET = SNIPPETS[MAX_TRIES - 1];
+const DONATE_URL = import.meta.env.VITE_DONATE_URL;
 
 export default function Daily() {
   const navigate = useNavigate();
@@ -248,6 +249,18 @@ export default function Daily() {
             <button className="btn btn-secondary" onClick={() => navigate('/')}>
               Сыграть с друзьями <Icon name="arrowRight" size={18} />
             </button>
+
+            {DONATE_URL && (
+              <a
+                className="donate-link"
+                href={DONATE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackEvent('donate_click', { from: 'daily' })}
+              >
+                <Icon name="heart" size={14} /> Поддержать проект
+              </a>
+            )}
 
             <p className="daily-courtesy">
               {meta.url ? (
