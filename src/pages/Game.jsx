@@ -11,10 +11,28 @@ import Icon from '../components/Icon';
 const CURRENT_YEAR = new Date().getFullYear();
 const DEFAULT_YEAR = 2010; // стартовое положение ползунка года (большинство треков из этой эпохи)
 
-// Позиция года на шкале MIN_YEAR..CURRENT_YEAR в процентах (для маркеров на reveal).
-function yearPct(year) {
-  const pct = ((year - MIN_YEAR) / (CURRENT_YEAR - MIN_YEAR)) * 100;
-  return Math.max(0, Math.min(100, pct));
+// Границы шкалы лет на reveal. При кучных ответах (все попали рядом с правильным
+// годом) полная шкала 1950–сегодня слепляет маркеры в одну точку — поэтому зумим
+// окно вокруг ответов: отступы по краям, минимум 10 лет, границы кратны 5
+// (например, трек 2011 и ответы 2009–2011 дадут окно 2005–2015). Если разброс
+// и так почти во всю шкалу — оставляем полную.
+function yearScaleBounds(target, guesses) {
+  const years = [target, ...guesses];
+  let lo = Math.min(...years);
+  let hi = Math.max(...years);
+  const pad = Math.max(2, Math.round((hi - lo) * 0.25));
+  lo -= pad;
+  hi += pad;
+  const MIN_WINDOW = 10;
+  if (hi - lo < MIN_WINDOW) {
+    const extra = MIN_WINDOW - (hi - lo);
+    lo -= Math.ceil(extra / 2);
+    hi += Math.floor(extra / 2);
+  }
+  lo = Math.max(MIN_YEAR, Math.floor(lo / 5) * 5);
+  hi = Math.min(CURRENT_YEAR, Math.ceil(hi / 5) * 5);
+  if (hi - lo > (CURRENT_YEAR - MIN_YEAR) * 0.7) return [MIN_YEAR, CURRENT_YEAR];
+  return [lo, hi];
 }
 
 export default function Game() {
@@ -357,31 +375,47 @@ export default function Game() {
           </div>
         )}
 
-        {/* Шкала лет: правильный год + маркеры догадок каждого игрока */}
-        {reveal && hasYear && (
-          <div className="year-reveal">
-            <div className="yr-bar">
-              <span className="yr-target" style={{ left: `${yearPct(round.year)}%` }}>
-                <span className="yr-flag">{round.year}</span>
-              </span>
-              {playerList.map((p, i) => {
-                const a = answers[p.uid];
-                if (!a || a.year == null) return null;
-                return (
-                  <span
-                    key={p.uid}
-                    className={`yr-mark c${i % 4}${a.year === round.year ? ' hit' : ''}`}
-                    style={{ left: `${yearPct(a.year)}%` }}
-                  >
-                    <span className={`yr-name${i % 2 ? ' up' : ''}`}>{shortName(p.name)}</span>
-                    <span className="yr-dot" />
+        {/* Шкала лет: правильный год + маркеры догадок. Окно зумится по разбросу ответов. */}
+        {reveal && hasYear && (() => {
+          const guessYears = playerList.map((p) => answers[p.uid]?.year).filter((y) => y != null);
+          const [lo, hi] = yearScaleBounds(round.year, guessYears);
+          const pct = (y) => Math.max(0, Math.min(100, ((y - lo) / (hi - lo)) * 100));
+          // промежуточные отметки лет; рядом с флажком правильного года не рисуем
+          const step = hi - lo <= 30 ? 5 : 20;
+          const ticks = [];
+          for (let y = Math.ceil((lo + 1) / step) * step; y < hi; y += step) {
+            if (Math.abs(pct(y) - pct(round.year)) > 8) ticks.push(y);
+          }
+          return (
+            <div className="year-reveal">
+              <div className="yr-bar">
+                {ticks.map((y) => (
+                  <span key={y} className="yr-tick" style={{ left: `${pct(y)}%` }}>
+                    <span>{y}</span>
                   </span>
-                );
-              })}
+                ))}
+                <span className="yr-target" style={{ left: `${pct(round.year)}%` }}>
+                  <span className="yr-flag">{round.year}</span>
+                </span>
+                {playerList.map((p, i) => {
+                  const a = answers[p.uid];
+                  if (!a || a.year == null) return null;
+                  return (
+                    <span
+                      key={p.uid}
+                      className={`yr-mark c${i % 4}${a.year === round.year ? ' hit' : ''}`}
+                      style={{ left: `${pct(a.year)}%` }}
+                    >
+                      <span className={`yr-name${i % 2 ? ' up' : ''}`}>{shortName(p.name)}</span>
+                      <span className="yr-dot" />
+                    </span>
+                  );
+                })}
+              </div>
+              <div className="yscale"><span>{lo}</span><span>{hi}</span></div>
             </div>
-            <div className="yscale"><span>{MIN_YEAR}</span><span>{CURRENT_YEAR}</span></div>
-          </div>
-        )}
+          );
+        })()}
 
         <div className="options">
           {round.options.map((opt, i) => {
