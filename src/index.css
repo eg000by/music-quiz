@@ -710,5 +710,5 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 .ip-x:hover { color:#fff; }
 
 /* свой бейдж пака в лобби — кнопка-удаление */
-button.pack-chip.mine { font:inherit; cursor:pointer; }
+button.pack-chip.mine { font-family:var(--font-sans); cursor:pointer; }
 @media (hover: hover) { button.pack-chip.mine:hover { background:var(--paper-press); border-color:var(--flame-cta); color:var(--flame-cta); } }
