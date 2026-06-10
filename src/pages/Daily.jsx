@@ -23,12 +23,19 @@ export default function Daily() {
   const [st, setSt] = useState(null);            // состояние сегодняшней партии
   const [streak, setStreak] = useState(getStreak());
   const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
   const audioRef = useRef(null);
   const stopRef = useRef(null);
 
   const pool = useMemo(() => allSongs(), []);
+  // быстрый поиск исполнителя по названию — для строк с неверными догадками
+  const poolByTitle = useMemo(() => {
+    const m = new Map();
+    pool.forEach((s) => { if (!m.has(s.title)) m.set(s.title, s); });
+    return m;
+  }, [pool]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,6 +117,7 @@ export default function Daily() {
     saveDailyState(next);
     setSt(next);
     setPhase('done');
+    // Стрик за участие: любой сыгранный день продолжает стрик (проигрыш не сбрасывает).
     const count = bumpStreak();
     setStreak(count);
     saveDailyStreak(user, count, dateKey()).catch(() => {});
@@ -164,18 +172,36 @@ export default function Daily() {
       && (s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q)))
     .slice(0, 6);
 
-  const cells = Array.from({ length: MAX_TRIES }, (_, i) => {
-    const g = st?.guesses[i];
-    if (g) return g.t;                                  // 's' | 'w' | 'c'
-    return !st?.done && i === st?.guesses.length ? 'cur' : 'next';
-  });
+  // Таймлайн попыток — источник правды для строк. Каждая из MAX_TRIES попыток — строка.
+  const rows = st ? Array.from({ length: MAX_TRIES }, (_, i) => {
+    const g = st.guesses[i];
+    if (g?.t === 'c') return { kind: 'right', label: answer?.title || '', sub: meta?.artist, pts: `+${st.score}` };
+    if (g?.t === 'w') return { kind: 'wrong', label: g.title, sub: poolByTitle.get(g.title)?.artist };
+    if (g?.t === 's') return { kind: 'skip', label: 'Пропуск' };
+    if (!st.done && i === st.guesses.length) return { kind: 'cur', label: 'Твой ход — слушай и угадывай', pts: `+${POINTS[i]}` };
+    return { kind: 'empty', label: '—' };
+  }) : [];
+
+  const rowIcon = (kind) =>
+    kind === 'wrong' ? <Icon name="x" size={13} />
+    : kind === 'right' ? <Icon name="check" size={13} />
+    : kind === 'skip' ? '—' : null;
+
+  const eyebrow = phase === 'done'
+    ? (st.won ? 'Угадал!' : 'Не угадал · загаданный трек')
+    : 'Трек дня';
 
   return (
     <div className="screen center">
       <audio ref={audioRef} preload="auto" playsInline onEnded={() => setPlaying(false)} />
       <div className="card daily-card">
-        <button className="back-link" onClick={() => navigate('/')}><Icon name="home" size={15} /> На главную</button>
-        <span className="eyebrow">Трек дня #{dayNumber()}</span>
+        <div className="daily-head">
+          <button className="back-link" onClick={() => navigate('/')}><Icon name="home" size={15} /> На главную</button>
+          <span className={`daily-streak-pill${streak > 0 ? ' on' : ''}`}>
+            <Icon name="flame" size={14} fill="currentColor" /> {streak}
+          </span>
+        </div>
+        <span className="eyebrow daily-eyebrow">{eyebrow}</span>
 
         {phase === 'loading' && (
           <div className="daily-center"><div className="spinner" /><p className="muted">Готовим трек…</p></div>
@@ -190,33 +216,46 @@ export default function Daily() {
 
         {phase === 'play' && st && (
           <>
-            <h2 className="daily-title">Угадай трек</h2>
-            <div className="daily-cells">
-              {cells.map((c, i) => (
-                <span key={i} className={`dc dc-${c}`}>
-                  {c === 'w' ? <Icon name="x" size={14} /> : c === 's' ? '—' : ''}
-                </span>
+            <div className="daily-scrub">
+              <button
+                className="dscrub-pp"
+                onClick={playing ? stopAudio : () => playSnippet(unlocked)}
+                aria-label={playing ? 'Стоп' : `Слушать ${unlocked} сек`}
+              >
+                <Icon name={playing ? 'pause' : 'play'} size={18} fill="currentColor" />
+              </button>
+              <div className="dscrub-bar">
+                <i style={{ width: `${(unlocked / FULL_SNIPPET) * 100}%` }} />
+                {SNIPPETS.map((s, i) => (
+                  <span key={i} className="dscrub-tick" style={{ left: `${(s / FULL_SNIPPET) * 100}%` }} />
+                ))}
+              </div>
+              <span className="dscrub-secs">0:{String(unlocked).padStart(2, '0')}</span>
+            </div>
+
+            <div className="daily-rows">
+              {rows.map((r, i) => (
+                <div key={i} className={`drow ${r.kind}`}>
+                  <span className="drow-num">{i + 1}</span>
+                  <span className="drow-ico">{rowIcon(r.kind)}</span>
+                  <span className="drow-lbl">{r.label}{r.sub && <span> · {r.sub}</span>}</span>
+                  {r.pts && <span className="drow-pts">{r.pts}</span>}
+                </div>
               ))}
             </div>
 
-            <button className="daily-play" onClick={playing ? stopAudio : () => playSnippet(unlocked)}>
-              <Icon name={playing ? 'x' : 'play'} size={20} />
-              {playing ? 'Стоп' : `Слушать ${unlocked} сек`}
-            </button>
-            <div className="daily-meter">
-              <div className="dm-fill" style={{ width: `${(unlocked / FULL_SNIPPET) * 100}%` }} />
+            <div className="daily-search">
+              <span className="ds-ic"><Icon name="search" size={17} /></span>
+              <input
+                className={`daily-input${focused ? ' focus' : ''}`}
+                placeholder="Название или исполнитель…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                autoComplete="off"
+              />
             </div>
-            <p className="muted daily-hint">
-              Попытка {st.guesses.length + 1} из {MAX_TRIES} · угадаешь сейчас — <b>+{POINTS[st.guesses.length]}</b>
-            </p>
-
-            <input
-              className="daily-input"
-              placeholder="Название или исполнитель…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              autoComplete="off"
-            />
             {suggestions.length > 0 && (
               <ul className="daily-suggest">
                 {suggestions.map((s) => (
@@ -229,10 +268,13 @@ export default function Daily() {
               </ul>
             )}
 
-            <button className="btn btn-ghost daily-skip" onClick={skip}>
+            <button
+              className={`daily-skip${st.guesses.length >= MAX_TRIES - 1 ? ' give' : ''}`}
+              onClick={skip}
+            >
               {st.guesses.length >= MAX_TRIES - 1
                 ? 'Сдаюсь'
-                : `Пропустить · +${SNIPPETS[st.guesses.length + 1] - unlocked} сек`}
+                : `Пропустить · открыть ещё ${SNIPPETS[st.guesses.length + 1] - unlocked} сек`}
             </button>
           </>
         )}
@@ -240,45 +282,53 @@ export default function Daily() {
         {phase === 'done' && st && meta && (
           <>
             <div className="daily-reveal">
-              {meta.artwork
-                ? <img className="daily-art" src={meta.artwork} alt="" />
-                : <div className="daily-art ph"><Icon name="music" size={40} /></div>}
+              <button className="daily-art" onClick={playing ? stopAudio : () => playSnippet(0)} aria-label="Послушать трек">
+                {meta.artwork
+                  ? <img src={meta.artwork} alt="" />
+                  : <span className="da-ph"><Icon name="music" size={34} /></span>}
+                <span className="da-play"><Icon name={playing ? 'pause' : 'play'} size={16} fill="currentColor" /></span>
+              </button>
               <div className="daily-track">
-                <b>{answer.title}</b>
-                <span className="muted">{meta.artist}{meta.year ? ` · ${meta.year}` : ''}</span>
+                <span className="dt-ttl">{answer.title}</span>
+                <span className="dt-art">{meta.artist}{meta.year ? ` · ${meta.year}` : ''}</span>
               </div>
+              {st.won && <span className="daily-bigscore">+{st.score}</span>}
             </div>
 
-            <h2 className="daily-outcome">
-              {st.won ? `+${st.score} очков!` : 'Сегодня не угадал'}
-            </h2>
-            <div className="daily-cells">
-              {cells.map((c, i) => (
-                <span key={i} className={`dc dc-${c}`}>
-                  {c === 'c' ? <Icon name="check" size={14} /> : c === 'w' ? <Icon name="x" size={14} /> : c === 's' ? '—' : ''}
-                </span>
+            <div className="daily-rows">
+              {rows.map((r, i) => (
+                <div key={i} className={`drow ${r.kind}`}>
+                  <span className="drow-num">{i + 1}</span>
+                  <span className="drow-ico">{rowIcon(r.kind)}</span>
+                  <span className="drow-lbl">{r.label}{r.sub && <span> · {r.sub}</span>}</span>
+                  {r.pts && <span className="drow-pts">{r.pts}</span>}
+                </div>
               ))}
             </div>
-            {streak > 0 && <p className="daily-streak">🔥 Стрик: {streak} {streak === 1 ? 'день' : streak < 5 ? 'дня' : 'дней'}</p>}
+
+            <p className="daily-cap">
+              {st.won
+                ? 'Новый трек — завтра. Возвращайся, чтобы не потерять стрик!'
+                : streak > 0
+                  ? 'День засчитан — стрик продолжается. Новый трек завтра.'
+                  : 'Сыграй завтра и начни новый стрик.'}
+            </p>
+
+            <div className="daily-actions">
+              <button className="daily-btn primary" onClick={handleShare}>
+                <Icon name="share" size={17} /> Поделиться результатом
+              </button>
+              <button className="daily-btn dark" onClick={() => navigate('/')}>
+                Сыграть с друзьями <Icon name="arrowRight" size={16} />
+              </button>
+            </div>
+            {shareMsg && <p className="share-toast">{shareMsg}</p>}
+
             {user?.isAnonymous && streak > 0 && (
               <button className="btn-link" onClick={() => signIn().catch(() => {})}>
                 Войди через Google — стрик сохранится в профиле
               </button>
             )}
-
-            <button className="daily-play" onClick={playing ? stopAudio : () => playSnippet(0)}>
-              <Icon name={playing ? 'x' : 'play'} size={20} />
-              {playing ? 'Стоп' : 'Послушать превью'}
-            </button>
-
-            <button className="btn btn-primary" onClick={handleShare}>
-              <Icon name="share" size={18} /> Поделиться результатом
-            </button>
-            {shareMsg && <p className="share-toast">{shareMsg}</p>}
-
-            <button className="btn btn-secondary" onClick={() => navigate('/')}>
-              Сыграть с друзьями <Icon name="arrowRight" size={18} />
-            </button>
 
             {DONATE_URL && (
               <a
@@ -298,8 +348,6 @@ export default function Daily() {
               ) : null}
               <span>Превью предоставлено iTunes</span>
             </p>
-
-            <p className="muted daily-next">Новый трек — завтра. Возвращайся, чтобы не потерять стрик!</p>
           </>
         )}
       </div>
