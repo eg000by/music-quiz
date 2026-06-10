@@ -676,3 +676,39 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
   position:absolute; top:100%; margin-top:7px; left:50%; transform:translateX(-50%);
   font-size:10.5px; font-weight:600; color:var(--ink-30); white-space:nowrap;
 }
+
+/* ============ «Недавно играли вместе» + приглашения ============ */
+.recent-row { width:100%; margin-top:4px; }
+.recent-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.recent-chip {
+  display:inline-flex; align-items:center; gap:7px;
+  font:inherit; font-size:13.5px; font-weight:600; color:var(--ink);
+  background:var(--paper-pure); border:1.5px solid var(--ink); border-radius:999px;
+  padding:6px 12px 6px 6px; cursor:pointer;
+  transition:background-color var(--dur-fast) var(--ease);
+}
+@media (hover: hover) { .recent-chip:hover:not(:disabled) { background:var(--paper-press); } }
+.recent-chip:disabled { cursor:default; }
+.recent-chip.sent { border-color:var(--green); color:var(--green); }
+.rc-ava { width:26px; height:26px; border-radius:50%; object-fit:cover; border:1.5px solid var(--ink); background:var(--ember); flex:0 0 auto; }
+.rc-ph { display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; text-transform:uppercase; }
+
+.invite-pop {
+  position:fixed; left:12px; right:12px; bottom:12px; z-index:110;
+  max-width:440px; margin:0 auto;
+  display:flex; align-items:center; gap:10px;
+  background:var(--ink); color:var(--paper-pure);
+  border-radius:var(--r-lg); padding:12px 14px;
+}
+.ip-text { flex:1; min-width:0; font-size:14px; }
+.ip-join {
+  display:inline-flex; align-items:center; gap:6px; font:inherit; font-size:14px; font-weight:700;
+  background:var(--flame-cta); color:#fff; border:none; border-radius:999px; padding:9px 16px; cursor:pointer;
+}
+.ip-join:hover { background:var(--flame-cta-press); }
+.ip-x { display:inline-flex; background:none; border:none; color:rgba(255,255,255,.65); cursor:pointer; padding:6px; }
+.ip-x:hover { color:#fff; }
+
+/* свой бейдж пака в лобби — кнопка-удаление */
+button.pack-chip.mine { font:inherit; cursor:pointer; }
+@media (hover: hover) { button.pack-chip.mine:hover { background:var(--paper-press); border-color:var(--flame-cta); color:var(--flame-cta); } }

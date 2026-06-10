@@ -145,6 +145,20 @@ service cloud.firestore {
       );
     }
 
+    // Приглашения в лобби («недавно играли вместе»). Один документ на получателя:
+    // последний зов перезаписывает предыдущий. Читает и удаляет только получатель;
+    // отправить может любой авторизованный, но только от своего имени, со строгой
+    // формой и серверным временем (фильтр устаревших приглашений на клиенте).
+    match /invites/{uid} {
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['code', 'fromUid', 'fromName', 'at'])
+        && request.resource.data.code is string && request.resource.data.code.size() == 4
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.fromName is string && request.resource.data.fromName.size() <= 100
+        && request.resource.data.at == request.time;
+    }
+
     // Профили и таблица лидеров. Читать рейтинг может любой авторизованный.
     // Писать — только в свой документ, и счёт нельзя накрутить произвольно:
     // он растёт монотонно и не больше чем на одну партию за запись.

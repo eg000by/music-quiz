@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { trackPage } from './services/analytics';
 import ConsentBanner from './components/ConsentBanner';
+import InviteToast from './components/InviteToast';
 
 // Экраны грузятся лениво (code-splitting): стартовый бандл не тянет код игры
 // (с аудио-движком), лобби, результатов и лидерборда, пока они не нужны.
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>
+      <InviteToast />
       <ConsentBanner />
     </>
   );

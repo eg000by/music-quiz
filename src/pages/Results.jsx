@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
 import { resetLobby, shortName } from '../services/lobby';
 import { recordGameResult } from '../services/users';
+import { rememberCoPlayers } from '../services/friends';
 import { shareOrCopy } from '../services/share';
 import { track } from '../services/analytics';
 import { STAGES } from '../services/scoring';
@@ -54,6 +55,7 @@ export default function Results() {
     const maxScore = Math.max(...Object.values(players).map((p) => p.score || 0));
     if (!finishTrackedRef.current) {
       finishTrackedRef.current = true;
+      rememberCoPlayers(lobby, user.uid); // для «недавно играли вместе»
       track('game_finish', {
         score: me.score || 0,
         solo: Object.keys(players).length === 1,

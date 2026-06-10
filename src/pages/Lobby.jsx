@@ -12,9 +12,11 @@ import {
   setLobbyMode,
   togglePlayerPack,
   combinedSongs,
+  shortName,
 } from '../services/lobby';
 import { syncClock } from '../services/clock';
 import { shareOrCopy } from '../services/share';
+import { getRecentPlayers, sendInvite } from '../services/friends';
 import { track } from '../services/analytics';
 import Icon from '../components/Icon';
 
@@ -34,6 +36,7 @@ export default function Lobby() {
   const [starting, setStarting] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
   const [leaving, setLeaving] = useState(false);
+  const [invited, setInvited] = useState(() => new Set());
   const joiningRef = useRef(false);
   const leavingRef = useRef(false);
 
@@ -128,6 +131,19 @@ export default function Lobby() {
   const toggleMyPack = (packId) =>
     togglePlayerPack(code, user.uid, packId, !myPacks.includes(packId)).catch(() => {});
 
+  // выбранные паки всплывают в начало списка (sort стабильный — внутри групп порядок исходный)
+  const sortedPacks = [...PACKS].sort(
+    (a, b) => (myPacks.includes(b.id) ? 1 : 0) - (myPacks.includes(a.id) ? 1 : 0)
+  );
+
+  // «недавно играли вместе», кто ещё не в этом лобби — приглашение в один клик
+  const invitable = getRecentPlayers().filter((r) => !lobby.players[r.uid]).slice(0, 6);
+  const inviteRecent = (r) => {
+    sendInvite(r.uid, code, user, me.name)
+      .then(() => setInvited((prev) => new Set(prev).add(r.uid)))
+      .catch(() => {});
+  };
+
   const handleLeave = async () => {
     leavingRef.current = true;
     setLeaving(true);
@@ -173,9 +189,20 @@ export default function Lobby() {
                     ? <span className="no-packs">паки не выбраны</span>
                     : (p.packs || []).map((id) => {
                         const pk = getPack(id);
-                        return pk ? (
+                        if (!pk) return null;
+                        // свой бейдж — кнопка: клик убирает пак
+                        return p.uid === user.uid ? (
+                          <button
+                            key={id}
+                            className="pack-chip mine"
+                            onClick={() => togglePlayerPack(code, user.uid, id, false).catch(() => {})}
+                            title="Убрать пак"
+                          >
+                            <Icon name={pk.icon} size={12} /> {pk.name} <Icon name="x" size={11} />
+                          </button>
+                        ) : (
                           <span key={id} className="pack-chip"><Icon name={pk.icon} size={12} /> {pk.name}</span>
-                        ) : null;
+                        );
                       })}
                 </div>
               </div>
@@ -189,13 +216,37 @@ export default function Lobby() {
         </div>
         {shareMsg && <p className="invite-toast">{shareMsg}</p>}
 
+        {invitable.length > 0 && (
+          <div className="recent-row">
+            <span className="settings-label"><span>Недавно играли вместе</span></span>
+            <div className="recent-list">
+              {invitable.map((r) => (
+                <button
+                  key={r.uid}
+                  className={`recent-chip${invited.has(r.uid) ? ' sent' : ''}`}
+                  disabled={invited.has(r.uid)}
+                  onClick={() => inviteRecent(r)}
+                >
+                  {r.photo
+                    ? <img className="rc-ava" src={r.photo} alt="" />
+                    : <span className="rc-ava rc-ph">{(r.name || 'И')[0]}</span>}
+                  {shortName(r.name)}
+                  {invited.has(r.uid)
+                    ? <><Icon name="check" size={13} /> позвали</>
+                    : <Icon name="share" size={13} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="settings">
           <span className="settings-label">
             <span>Мои паки · объединяются у всех</span>
             <span className="lab-count">{myPacks.length}</span>
           </span>
           <div className={`pack-toggles${manyPacks ? ' scroll' : ''}`}>
-            {PACKS.map((p) => {
+            {sortedPacks.map((p) => {
               const on = myPacks.includes(p.id);
               return (
                 <button
