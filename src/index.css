@@ -107,6 +107,9 @@ h2 { font-size:24px; font-weight:700; line-height:1.05; }
 /* ---------- topbar / brand ---------- */
 .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
 .brand { display:flex; align-items:center; gap:9px; font-size:18px; font-weight:700; letter-spacing:-.02em; }
+/* бренд бывает кнопкой (клик — на главную): сбрасываем UA-стили кнопки, иначе
+   Safari красит текст в системный синий и подменяет шрифт на системный */
+button.brand { background:none; border:none; padding:0; color:var(--ink); font-family:var(--font-sans); cursor:pointer; }
 .brand-logo {
   width:30px; height:30px; flex:0 0 auto; background:var(--flame); color:var(--paper-pure);
   border:2px solid var(--ink); display:flex; align-items:center; justify-content:center;

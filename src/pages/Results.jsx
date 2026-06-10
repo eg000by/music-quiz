@@ -117,8 +117,10 @@ export default function Results() {
   const handleShareResult = async () => {
     const myScore = lobby.players[user.uid]?.score || 0;
     const res = await shareOrCopy({
-      title: 'Музыкальная викторина',
-      text: `Я набрал ${myScore} очков в музыкальной викторине! А ты сможешь лучше?`,
+      title: 'Egorii — музыкальная викторина',
+      text: solo
+        ? `🎵 Я набрал ${myScore} очков в музыкальной викторине Egorii! Сможешь лучше?`
+        : `🎵 Egorii: матч ${scoreLine} — у меня ${myScore} очков. Сможешь лучше?`,
       url: window.location.origin,
     });
     if (res === 'copied') setShareMsg('Ссылка скопирована');
