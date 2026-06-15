@@ -65,7 +65,7 @@ service cloud.firestore {
       function ownPlayerOk() {
         return !(request.auth.uid in request.resource.data.players)
           || (
-            request.resource.data.players[request.auth.uid].keys().hasOnly(['uid', 'name', 'photo', 'score', 'ready', 'packs'])
+            request.resource.data.players[request.auth.uid].keys().hasOnly(['uid', 'name', 'photo', 'score', 'ready', 'packs', 'anon'])
             && request.resource.data.players[request.auth.uid].name is string
             && request.resource.data.players[request.auth.uid].name.size() <= 100
             && request.resource.data.players[request.auth.uid].packs is list

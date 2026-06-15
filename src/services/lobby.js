@@ -58,14 +58,15 @@ function shuffle(arr) {
   return a;
 }
 
-function playerObj(user, fallbackName = 'Игрок') {
+function playerObj(user, fallbackName = 'Игрок', name) {
   return {
     uid: user.uid,
-    name: user.displayName || fallbackName,
+    name: name || user.displayName || fallbackName,
     photo: user.photoURL || null,
     score: 0,
     ready: false,
     packs: [], // предпочитаемые паки этого игрока (объединяются в общий пул игры)
+    anon: !!user.isAnonymous, // гость — чтобы не попадать в «Снова вместе»
   };
 }
 

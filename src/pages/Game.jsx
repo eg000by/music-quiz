@@ -244,6 +244,15 @@ export default function Game() {
   const livePoints = pointsForElapsed(elapsed);
 
   const playerList = lobby.playerOrder.map((uid) => lobby.players[uid]).filter(Boolean);
+  // «Пирамида лидерства»: игроки по убыванию очков, с местами (равный счёт — одно место).
+  const ranked = [...playerList].sort((a, b) => (b.score || 0) - (a.score || 0));
+  const standings = ranked.map((p, i) => ({
+    ...p,
+    // место = 1 + число игроков со строго бо́льшим счётом
+    pos: 1 + ranked.filter((o) => (o.score || 0) > (p.score || 0)).length,
+    rowIndex: i,
+  }));
+  const multiplayer = standings.length > 1;
 
   const pick = (i) => {
     if (reveal || paused) return;
@@ -338,10 +347,19 @@ export default function Game() {
             aria-label="Уровень громкости"
           />
         </div>
-        <div className="scores">
-          {playerList.map((p) => (
-            <span key={p.uid} className="score-chip">
-              {shortName(p.name)}: <b>{p.score}</b>
+        <div className={`standings${multiplayer ? '' : ' solo'}`}>
+          {standings.map((p) => (
+            <span
+              key={p.uid}
+              className={`rank-row${multiplayer && p.pos === 1 ? ' lead' : ''}${p.uid === user?.uid ? ' me' : ''}`}
+            >
+              {multiplayer && (
+                <span className="rank-pos">
+                  {p.pos === 1 ? <Icon name="crown" size={13} /> : p.pos}
+                </span>
+              )}
+              <span className="rank-name">{shortName(p.name)}</span>
+              <b className="rank-score">{p.score}</b>
             </span>
           ))}
         </div>

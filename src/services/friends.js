@@ -20,7 +20,8 @@ export function getRecentPlayers() {
 // Запоминаем соигроков завершённой партии (кроме себя): свежие — в начало списка.
 export function rememberCoPlayers(lobby, myUid) {
   try {
-    const others = Object.values(lobby?.players || {}).filter((p) => p.uid && p.uid !== myUid);
+    // Гостей (анонимов) не запоминаем: их нельзя осмысленно позвать снова.
+    const others = Object.values(lobby?.players || {}).filter((p) => p.uid && p.uid !== myUid && !p.anon);
     if (!others.length) return;
     const fresh = others.map((p) => ({ uid: p.uid, name: p.name, photo: p.photo || null, at: Date.now() }));
     const rest = getRecentPlayers().filter((r) => !others.some((p) => p.uid === r.uid));
