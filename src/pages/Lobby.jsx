@@ -29,7 +29,7 @@ const MODES = [
 
 export default function Lobby() {
   const { code } = useParams();
-  const { user } = useAuth();
+  const { user, displayName } = useAuth();
   const { lobby, loading } = useLobby(code);
   const navigate = useNavigate();
   const [error, setError] = useState('');
@@ -48,8 +48,8 @@ export default function Lobby() {
     if (joiningRef.current) return;
     joiningRef.current = true;
     track('invite_open', { code });
-    joinLobby(code, user).catch((e) => setError(e.message || 'Не удалось войти в лобби'));
-  }, [lobby, user, code]);
+    joinLobby(code, user, user.isAnonymous ? undefined : displayName).catch((e) => setError(e.message || 'Не удалось войти в лобби'));
+  }, [lobby, user, code, displayName]);
 
   // заранее измеряем смещение часов, чтобы хост стартовал раунды в серверном времени
   useEffect(() => {

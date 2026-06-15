@@ -15,6 +15,7 @@ const Results = lazy(() => import('./pages/Results'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Daily = lazy(() => import('./pages/Daily'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 function Spinner() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="/results/:code" element={<Gate><Results /></Gate>} />
         <Route path="/leaderboard" element={<Gate><Leaderboard /></Gate>} />
         <Route path="/daily" element={<Daily />} />
+        <Route path="/profile" element={<Gate><Profile /></Gate>} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

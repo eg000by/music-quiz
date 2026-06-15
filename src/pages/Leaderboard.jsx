@@ -67,9 +67,9 @@ export default function Leaderboard() {
                     : <span className="lb-rank">{i + 1}</span>}
                   {p.photo
                     ? <img src={p.photo} alt="" className="avatar" />
-                    : <span className={`avatar${me ? ' flame' : ''}`}>{(p.name || 'И')[0]}</span>}
+                    : <span className={`avatar${me ? ' flame' : ''}`}>{(p.nickname || p.name || 'И')[0]}</span>}
                   <div className="lb-main">
-                    <span className="lb-name">{p.name || 'Игрок'}{me && <span className="you-tag">ты</span>}</span>
+                    <span className="lb-name">{p.nickname || p.name || 'Игрок'}{me && <span className="you-tag">ты</span>}</span>
                     <span className="lb-meta">{p.gamesPlayed || 0} игр · {p.wins || 0} побед</span>
                   </div>
                   <span className="lb-score">{(p.totalScore || 0).toLocaleString('ru-RU')}</span>

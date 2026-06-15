@@ -104,7 +104,7 @@ export function combinedSongs(lobby) {
   return songs;
 }
 
-export async function createLobby(user, pack) {
+export async function createLobby(user, pack, name) {
   cleanupOldLobbies(); // фоновая чистка старых лобби, не ждём результата
   for (let i = 0; i < 10; i++) {
     const code = genCode();
@@ -114,9 +114,9 @@ export async function createLobby(user, pack) {
     await setDoc(ref, {
       code,
       hostId: user.uid,
-      hostName: user.displayName || 'Игрок',
+      hostName: name || user.displayName || 'Игрок',
       status: 'waiting', // waiting | loading | playing | finished
-      players: { [user.uid]: { ...playerObj(user, 'Игрок 1'), ready: true, packs: pack ? [pack.id] : [] } },
+      players: { [user.uid]: { ...playerObj(user, 'Игрок 1', name), ready: true, packs: pack ? [pack.id] : [] } },
       playerOrder: [user.uid],
       roundCount: DEFAULT_ROUNDS,
       mode: 'normal', // normal | evolution
@@ -133,7 +133,7 @@ export async function createLobby(user, pack) {
   throw new Error('Не удалось создать лобби, попробуй ещё раз');
 }
 
-export async function joinLobby(code, user) {
+export async function joinLobby(code, user, name) {
   const ref = doc(db, 'lobbies', code);
   const snap = await getDoc(ref);
   if (!snap.exists()) throw new Error('Лобби с таким кодом не найдено');
@@ -144,7 +144,7 @@ export async function joinLobby(code, user) {
   if (!already && Object.keys(players).length >= MAX_PLAYERS) throw new Error(`Лобби заполнено (${MAX_PLAYERS} игрока)`);
   if (!already) {
     await updateDoc(ref, {
-      [`players.${user.uid}`]: playerObj(user, anonName(players)),
+      [`players.${user.uid}`]: playerObj(user, anonName(players), name),
       playerOrder: arrayUnion(user.uid),
     });
   }

@@ -20,8 +20,9 @@ service cloud.firestore {
     // размера, счётчики — неотрицательные целые, побед не больше партий, история партий
     // ограничена 100 элементами.
     function validUserData(data) {
-      return data.keys().hasOnly(['uid', 'name', 'photo', 'totalScore', 'gamesPlayed', 'wins', 'recordedGames', 'updatedAt', 'dailyStreak', 'dailyLast'])
+      return data.keys().hasOnly(['uid', 'name', 'photo', 'totalScore', 'gamesPlayed', 'wins', 'recordedGames', 'updatedAt', 'dailyStreak', 'dailyLast', 'nickname'])
         && data.name is string && data.name.size() <= 100
+        && (!('nickname' in data) || (data.nickname is string && data.nickname.size() <= 24))
         && (data.photo == null || (data.photo is string && data.photo.size() <= 500))
         && data.totalScore is int && data.totalScore >= 0
         && data.gamesPlayed is int && data.gamesPlayed >= 0

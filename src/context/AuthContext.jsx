@@ -10,14 +10,21 @@ import {
   onAuthStateChanged,
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
-import { ensureProfile } from '../services/users';
+import { ensureProfile, fetchProfile, saveNickname } from '../services/users';
 import { track } from '../services/analytics';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null); // документ users/{uid} (nickname и т.п.)
   const [loading, setLoading] = useState(true);
+
+  // Подтягиваем профиль зарегистрированного игрока, чтобы знать его никнейм.
+  const loadProfile = (u) => {
+    if (!u || u.isAnonymous) { setProfile(null); return; }
+    fetchProfile(u.uid).then((p) => setProfile(p)).catch(() => {});
+  };
 
   useEffect(() => {
     // При возврате с Google onAuthStateChanged может сработать с null ДО завершения
@@ -36,6 +43,7 @@ export function AuthProvider({ children }) {
       setUser(u);
       setLoading(false);
       ensureProfile(u).catch(() => {});
+      loadProfile(u);
       track('sign_in', { method: 'google' });
     };
 
@@ -64,6 +72,7 @@ export function AuthProvider({ children }) {
         setUser(u);
         setLoading(false);
         ensureProfile(u).catch(() => {});
+        loadProfile(u);
       } else if (redirectResolved) {
         anonIfNeeded();
       } else {
@@ -85,8 +94,19 @@ export function AuthProvider({ children }) {
 
   const signOut = () => fbSignOut(auth);
 
+  // Эффективное отображаемое имя: никнейм → имя Google → «Игрок».
+  const nickname = profile?.nickname || null;
+  const displayName = nickname || user?.displayName || 'Игрок';
+
+  // Сохранить никнейм и сразу отразить локально (без перезагрузки профиля).
+  const updateNickname = async (n) => {
+    await saveNickname(user, n);
+    const clean = (n || '').trim().slice(0, 24);
+    setProfile((p) => ({ ...(p || { uid: user.uid }), nickname: clean }));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, nickname, displayName, loading, signIn, signOut, updateNickname }}>
       {children}
     </AuthContext.Provider>
   );

@@ -11,19 +11,23 @@ import Icon from '../components/Icon';
 import logoMark from '../assets/illustrations/logo-mark.svg';
 
 export default function Home() {
-  const { user, signIn, signOut } = useAuth();
+  const { user, displayName, signIn, signOut } = useAuth();
   const navigate = useNavigate();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [recents] = useState(() => getRecentPlayers().slice(0, 6));
 
+  // Эффективное имя (никнейм/Google) — только для зарегистрированных; у гостей
+  // остаётся авто-«Игрок N», поэтому им передаём undefined.
+  const myName = user.isAnonymous ? undefined : displayName;
+
   // Паки выбираются в лобби (свои у каждого игрока, объединяются) — тут только создание.
   const handleCreate = async () => {
     setError('');
     setBusy(true);
     try {
-      const newCode = await createLobby(user, null);
+      const newCode = await createLobby(user, null, myName);
       navigate(`/lobby/${newCode}`);
     } catch (e) {
       setError(e.message || 'Ошибка');
@@ -37,8 +41,8 @@ export default function Home() {
     setError('');
     setBusy(true);
     try {
-      const newCode = await createLobby(user, null);
-      await sendInvite(r.uid, newCode, user).catch(() => {});
+      const newCode = await createLobby(user, null, myName);
+      await sendInvite(r.uid, newCode, user, myName).catch(() => {});
       navigate(`/lobby/${newCode}`);
     } catch (e) {
       setError(e.message || 'Ошибка');
@@ -55,7 +59,7 @@ export default function Home() {
     }
     setBusy(true);
     try {
-      await joinLobby(code, user);
+      await joinLobby(code, user, myName);
       navigate(`/lobby/${code}`);
     } catch (e) {
       setError(e.message || 'Ошибка');
@@ -64,7 +68,7 @@ export default function Home() {
     }
   };
 
-  const initial = (user.displayName || 'И').trim()[0];
+  const initial = (displayName || 'И').trim()[0];
 
   return (
     <div className="screen">
@@ -77,9 +81,11 @@ export default function Home() {
           <button className="iconbtn" onClick={() => navigate('/leaderboard')} title="Таблица лидеров" aria-label="Таблица лидеров">
             <Icon name="crown" size={18} />
           </button>
-          {user.photoURL
-            ? <img src={user.photoURL} alt="" className="avatar" />
-            : <div className="avatar ph">{initial}</div>}
+          <button className="avatar-btn" onClick={() => navigate('/profile')} title="Профиль" aria-label="Профиль">
+            {user.photoURL
+              ? <img src={user.photoURL} alt="" className="avatar" />
+              : <div className="avatar ph">{initial}</div>}
+          </button>
           {user.isAnonymous ? (
             <button className="iconbtn" onClick={() => signIn().catch(() => {})} title="Войти через Google — сохранять прогресс и попасть в таблицу лидеров" aria-label="Войти через Google">
               <span className="g-mark">G</span>

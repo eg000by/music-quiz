@@ -73,6 +73,19 @@ export async function recordGameResult(user, gameId, score, won) {
   });
 }
 
+// Никнейм зарегистрированного игрока (анонимам не пишем — у них авто «Игрок N»).
+// Имя в users.{name} остаётся именем из Google (это ключ-идентичность лидерборда);
+// отображаем nickname || name.
+export async function saveNickname(user, nickname) {
+  if (!user || user.isAnonymous) return;
+  const clean = (nickname || '').trim().slice(0, 24);
+  await setDoc(
+    doc(db, 'users', user.uid),
+    { uid: user.uid, nickname: clean, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+}
+
 // Профиль игрока (нужен «Треку дня», чтобы подтянуть стрик с другого устройства).
 export async function fetchProfile(uid) {
   try {
