@@ -10,10 +10,13 @@ export default function Profile() {
   const navigate = useNavigate();
   const t = useT();
   const { locale, setLocale } = useLocale();
-  const [value, setValue] = useState(nickname || (user && !user.isAnonymous ? user.displayName : '') || '');
+  // edited === null, пока пользователь не трогал поле: тогда показываем никнейм
+  // (он может подгрузиться асинхронно) или имя Google.
+  const [edited, setEdited] = useState(null);
   const [stats, setStats] = useState(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const value = edited != null ? edited : (nickname || (!user.isAnonymous ? user.displayName : '') || '');
 
   useEffect(() => {
     if (!user || user.isAnonymous) return;
@@ -63,7 +66,7 @@ export default function Profile() {
                 value={value}
                 maxLength={24}
                 placeholder={t('profile.nicknamePh')}
-                onChange={(e) => setValue(e.target.value)}
+                onChange={(e) => setEdited(e.target.value)}
               />
               <button className="btn btn-primary" onClick={save} disabled={saving}>
                 {saved ? <><Icon name="check" size={18} /> {t('profile.saved')}</> : t('profile.save')}
