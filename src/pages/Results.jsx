@@ -9,7 +9,8 @@ import { rememberCoPlayers } from '../services/friends';
 import { shareOrCopy } from '../services/share';
 import { track } from '../services/analytics';
 import { STAGES } from '../services/scoring';
-import { getPack } from '../data/packs';
+import { getPack, packName } from '../data/packs';
+import { useT, useLocale } from '../i18n';
 import Icon from '../components/Icon';
 import trophy from '../assets/illustrations/trophy.svg';
 
@@ -39,6 +40,8 @@ export default function Results() {
   const { code } = useParams();
   const { user, signIn } = useAuth();
   const { lobby, loading } = useLobby(code);
+  const t = useT();
+  const { locale } = useLocale();
   const navigate = useNavigate();
   const recordedRef = useRef(false);
   const finishTrackedRef = useRef(false);
@@ -79,8 +82,8 @@ export default function Results() {
     return (
       <div className="screen center">
         <div className="card center-card">
-          <p>Игра не найдена.</p>
-          <button className="btn btn-secondary" onClick={() => navigate('/')}>На главную</button>
+          <p>{t('results.notFound')}</p>
+          <button className="btn btn-secondary" onClick={() => navigate('/')}>{t('common.home')}</button>
         </div>
       </div>
     );
@@ -100,7 +103,7 @@ export default function Results() {
   const rounds = log.length;
   const scoreLine = players.map((p) => p.score).join(' : ');
   const soloPacks = solo
-    ? (players[0].packs || []).map((id) => getPack(id)?.name).filter(Boolean).join(', ')
+    ? (players[0].packs || []).map((id) => packName(getPack(id), locale)).filter(Boolean).join(', ')
     : '';
 
   // Гость нажал «сохранить результат»: уходим на Google (редирект). После возврата
@@ -117,14 +120,14 @@ export default function Results() {
   const handleShareResult = async () => {
     const myScore = lobby.players[user.uid]?.score || 0;
     const res = await shareOrCopy({
-      title: 'Egorii — музыкальная викторина',
+      title: 'Egorii',
       text: solo
-        ? `🎵 Я набрал ${myScore} очков в музыкальной викторине Egorii! Сможешь лучше?`
-        : `🎵 Egorii: матч ${scoreLine} — у меня ${myScore} очков. Сможешь лучше?`,
+        ? t('results.shareSolo', { score: myScore })
+        : t('results.shareDuel', { line: scoreLine, score: myScore }),
       url: window.location.origin,
     });
-    if (res === 'copied') setShareMsg('Ссылка скопирована');
-    else if (res === 'failed') setShareMsg('Не удалось поделиться');
+    if (res === 'copied') setShareMsg(t('results.shareCopied'));
+    else if (res === 'failed') setShareMsg(t('lobby.shareFailed'));
     else setShareMsg('');
     if (res === 'copied' || res === 'failed') setTimeout(() => setShareMsg(''), 2500);
     if (res !== 'failed') track('share', { content_type: 'result', method: res });
@@ -137,21 +140,21 @@ export default function Results() {
 
         {solo ? (
           <>
-            <span className="eyebrow">Партия окончена</span>
-            <h1>{players[0].score} очков</h1>
-            <p className="sub-line">{rounds} раундов{soloPacks && ` · ${soloPacks}`}</p>
+            <span className="eyebrow">{t('results.over')}</span>
+            <h1>{t('results.score', { n: players[0].score })}</h1>
+            <p className="sub-line">{t('results.roundsN', { n: rounds })}{soloPacks && ` · ${soloPacks}`}</p>
           </>
         ) : tie ? (
           <>
-            <span className="eyebrow">Итог матча</span>
-            <h1>Ничья!</h1>
-            <p className="sub-line">{scoreLine} · {rounds} раундов</p>
+            <span className="eyebrow">{t('results.matchResult')}</span>
+            <h1>{t('results.tie')}</h1>
+            <p className="sub-line">{scoreLine} · {t('results.roundsN', { n: rounds })}</p>
           </>
         ) : (
           <>
-            <span className="eyebrow">Победитель</span>
+            <span className="eyebrow">{t('results.winner')}</span>
             <h1><span className="winner-name">{shortName(winner.name)}</span></h1>
-            <p className="sub-line">{scoreLine} · {rounds} раундов</p>
+            <p className="sub-line">{scoreLine} · {t('results.roundsN', { n: rounds })}</p>
           </>
         )}
 
@@ -173,11 +176,11 @@ export default function Results() {
                     <div className="big-score">{p.score}</div>
                   </>
                 )}
-                <div className="stat-line"><span>Угадано</span><b>{s.correct} / {rounds}</b></div>
-                <div className="stat-line"><span>Молниеносных</span><b>{s.fast}</b></div>
+                <div className="stat-line"><span>{t('results.guessed')}</span><b>{s.correct} / {rounds}</b></div>
+                <div className="stat-line"><span>{t('results.fast')}</span><b>{s.fast}</b></div>
                 <div className="stat-line">
-                  <span>Среднее время</span>
-                  <b>{s.avgTime != null ? `${(s.avgTime / 1000).toFixed(1)}с` : '—'}</b>
+                  <span>{t('results.avgTime')}</span>
+                  <b>{s.avgTime != null ? `${(s.avgTime / 1000).toFixed(1)}${locale === 'en' ? 's' : 'с'}` : '—'}</b>
                 </div>
               </div>
             );
@@ -186,23 +189,23 @@ export default function Results() {
 
         {user.isAnonymous && (
           <div className="save-cta">
-            <p className="muted">Войди через Google, чтобы сохранить результат и попасть в таблицу лидеров.</p>
+            <p className="muted">{t('results.saveCta')}</p>
             <button className="btn btn-google" onClick={handleSignInToSave}>
-              <span className="g">G</span> Сохранить результат
+              <span className="g">G</span> {t('results.saveResult')}
             </button>
           </div>
         )}
 
         <div className="actions">
           {isHost ? (
-            <button className="btn btn-primary" onClick={handleAgain}><Icon name="rotate" size={18} /> Играть снова</button>
+            <button className="btn btn-primary" onClick={handleAgain}><Icon name="rotate" size={18} /> {t('results.again')}</button>
           ) : (
-            <p className="muted">Хост может запустить новую игру</p>
+            <p className="muted">{t('results.hostAgain')}</p>
           )}
-          <button className="btn btn-outline" onClick={() => navigate('/')}><Icon name="home" size={18} /> На главную</button>
+          <button className="btn btn-outline" onClick={() => navigate('/')}><Icon name="home" size={18} /> {t('common.home')}</button>
         </div>
 
-        <button className="share-link" onClick={handleShareResult}><Icon name="share" size={15} /> Поделиться результатом</button>
+        <button className="share-link" onClick={handleShareResult}><Icon name="share" size={15} /> {t('results.share')}</button>
         {shareMsg && <p className="share-toast">{shareMsg}</p>}
       </div>
     </div>

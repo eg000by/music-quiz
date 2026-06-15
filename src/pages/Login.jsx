@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useT } from '../i18n';
 import logoMark from '../assets/illustrations/logo-mark.svg';
 import vinyl from '../assets/illustrations/vinyl.svg';
 
@@ -9,6 +10,7 @@ import vinyl from '../assets/illustrations/vinyl.svg';
 export default function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const t = useT();
 
   return (
     <div className="screen center">
@@ -18,15 +20,15 @@ export default function Login() {
           <span className="brand-name">Egorii</span>
         </div>
         <div className="login-illo"><img src={vinyl} alt="" /></div>
-        <span className="eyebrow">Игра · угадай трек быстрее</span>
-        <h1>Музыкальная викторина</h1>
-        <p className="muted">Включаем 30 секунд трека. Узнал песню быстрее — забрал очки. Играй один или с кем-то по коду.</p>
+        <span className="eyebrow">{t('login.eyebrow')}</span>
+        <h1>{t('login.title')}</h1>
+        <p className="muted">{t('login.lead')}</p>
         <button className="btn btn-google" onClick={() => signIn().catch(() => {})}>
-          <span className="g">G</span> Войти через Google
+          <span className="g">G</span> {t('login.google')}
         </button>
-        <p className="muted">Нужен только аккаунт Google.</p>
+        <p className="muted">{t('login.googleNote')}</p>
         <button className="btn-link legal-link" onClick={() => navigate('/privacy')}>
-          Политика конфиденциальности
+          {t('common.privacy')}
         </button>
       </div>
     </div>

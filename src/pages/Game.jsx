@@ -6,6 +6,7 @@ import { submitAnswer, revealRound, advanceRound, pauseRound, resumeRound, short
 import { ROUND_MS, STAGES, stageForElapsed, pointsForElapsed, BOTH_ANSWERED_EXTRA_MS, REVEAL_MS, MIN_YEAR, yearPoints } from '../services/scoring';
 import { serverNow, syncClock } from '../services/clock';
 import { EvolutionPlayer, preload as preloadBuffer, unlockAudio } from '../services/audioEngine';
+import { useT } from '../i18n';
 import Icon from '../components/Icon';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -40,6 +41,7 @@ export default function Game() {
   const { user } = useAuth();
   const { lobby } = useLobby(code);
   const navigate = useNavigate();
+  const t = useT();
 
   const audioRef = useRef(null);
   const engineRef = useRef(null);
@@ -226,12 +228,12 @@ export default function Game() {
     return (
       <div className="screen center">
         <div className="spinner" />
-        <p className="muted">Загружаем треки…</p>
+        <p className="muted">{t('game.loadingTracks')}</p>
       </div>
     );
   }
   if (!current || !round) {
-    return <div className="screen center"><p className="muted">Подготовка…</p></div>;
+    return <div className="screen center"><p className="muted">{t('game.preparing')}</p></div>;
   }
 
   const reveal = phase === 'reveal';
@@ -324,19 +326,19 @@ export default function Game() {
       <audio ref={audioRef} preload="auto" playsInline />
 
       <header className="game-head">
-        <span className="round-counter">Раунд {current.index + 1} / {lobby.totalRounds}</span>
+        <span className="round-counter">{t('game.round', { n: current.index + 1, total: lobby.totalRounds })}</span>
         {isHost && phase === 'playing' && (
           <button
             className="vol-btn"
             onClick={() => (paused ? resumeRound(code) : pauseRound(code)).catch(() => {})}
-            aria-label={paused ? 'Продолжить' : 'Пауза'}
-            title={paused ? 'Продолжить' : 'Пауза'}
+            aria-label={paused ? t('game.resume') : t('game.pause')}
+            title={paused ? t('game.resume') : t('game.pause')}
           >
             <Icon name={paused ? 'play' : 'pause'} size={18} />
           </button>
         )}
         <div className="vol">
-          <button className="vol-btn" onClick={toggleMute} aria-label="Громкость">
+          <button className="vol-btn" onClick={toggleMute} aria-label={t('game.volume')}>
             <Icon name={volume === 0 ? 'volumeX' : 'volume'} size={18} />
           </button>
           <input
@@ -344,7 +346,7 @@ export default function Game() {
             type="range" min="0" max="1" step="0.01"
             value={volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
-            aria-label="Уровень громкости"
+            aria-label={t('game.volumeLevel')}
           />
         </div>
         <div className={`standings${multiplayer ? '' : ' solo'}`}>
@@ -379,9 +381,9 @@ export default function Game() {
           <>
             <div className="stage-label">
               {stageInfo ? (
-                <>{stageInfo.label} · <b>{livePoints}</b> очков</>
+                <>{t('game.stageLabel', { n: stage + 1, sec: stageInfo.maxMs / 1000 })} · <b>{livePoints}</b> {t('game.ptsWord')}</>
               ) : (
-                <>Время вышло</>
+                <>{t('game.timeUp')}</>
               )}
             </div>
             <div className="progress">
@@ -392,7 +394,7 @@ export default function Game() {
             </div>
             {mode === 'evolution' && (
               <div className="muted clarity-hint">
-                <Icon name="volume" size={14} /> Эволюция трека · чёткость {Math.round(progress)}%
+                <Icon name="volume" size={14} /> {t('game.evolutionHint', { pct: Math.round(progress) })}
               </div>
             )}
           </>
@@ -472,7 +474,7 @@ export default function Game() {
 
         {!reveal && myAnswer && hasYear && (
           <div className="yearB">
-            <span className="yb-cap">Год выпуска трека</span>
+            <span className="yb-cap">{t('game.yearLabel')}</span>
             <span className="yb-num">{yearGuess}</span>
             <input
               className="yslider"
@@ -481,18 +483,18 @@ export default function Game() {
               onChange={onYearChange}
               onPointerUp={(e) => commitYear(parseInt(e.target.value, 10))}
               onTouchEnd={(e) => commitYear(parseInt(e.target.value, 10))}
-              aria-label="Год выпуска трека"
+              aria-label={t('game.yearLabel')}
             />
             <div className="yscale"><span>{MIN_YEAR}</span><span>{CURRENT_YEAR}</span></div>
-            <span className="auto-note"><span className="ico"><Icon name="check" size={13} /></span> Последний год зачтётся сам</span>
+            <span className="auto-note"><span className="ico"><Icon name="check" size={13} /></span> {t('game.yearAuto')}</span>
           </div>
         )}
 
         {!reveal && myAnswer && (
           <p className="muted waiting">
             {answerCount >= playerCount && playerCount > 0
-              ? 'Все ответили — ещё можно передумать!'
-              : 'Ответ принят, можно поменять. Ждём остальных…'}
+              ? t('game.allAnswered')
+              : t('game.answerAccepted')}
           </p>
         )}
 
@@ -506,14 +508,14 @@ export default function Game() {
                   <span>{shortName(p.name)}</span>
                   {a ? (
                     <span className={a.correct ? 'ok' : 'bad'}>
-                      {a.correct ? `+${a.points} (${(a.atMs / 1000).toFixed(1)}с)` : 'мимо'}
+                      {a.correct ? t('game.scoreAt', { points: a.points, sec: (a.atMs / 1000).toFixed(1) }) : t('game.miss')}
                     </span>
                   ) : (
-                    <span className="bad">не успел</span>
+                    <span className="bad">{t('game.tooLate')}</span>
                   )}
                   {yd != null && (
                     <span className="rr-year">
-                      {a.year} · {yd === 0 ? 'точно!' : `${yd > 0 ? '+' : '−'}${Math.abs(yd)}`} · <b>+{a.yearPoints || 0}</b>
+                      {a.year} · {yd === 0 ? t('game.exact') : `${yd > 0 ? '+' : '−'}${Math.abs(yd)}`} · <b>+{a.yearPoints || 0}</b>
                     </span>
                   )}
                 </div>
@@ -525,7 +527,7 @@ export default function Game() {
 
       {needTap && !reveal && !paused && (
         <button className="tap-overlay" onClick={resumeAudio}>
-          <Icon name="play" size={15} /> Нажми, чтобы слушать
+          <Icon name="play" size={15} /> {t('game.tapToListen')}
         </button>
       )}
 
@@ -533,13 +535,13 @@ export default function Game() {
         <div className="pause-overlay">
           <div className="pause-card">
             <span className="pause-ico"><Icon name="pause" size={26} /></span>
-            <b>Пауза</b>
+            <b>{t('game.pause')}</b>
             {isHost ? (
               <button className="btn btn-primary" onClick={() => resumeRound(code).catch(() => {})}>
-                <Icon name="play" size={18} /> Продолжить
+                <Icon name="play" size={18} /> {t('game.resume')}
               </button>
             ) : (
-              <p className="muted">Хост поставил игру на паузу</p>
+              <p className="muted">{t('game.pausedByHost')}</p>
             )}
           </div>
         </div>

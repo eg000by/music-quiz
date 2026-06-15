@@ -5,6 +5,7 @@ import { createLobby, joinLobby, shortName } from '../services/lobby';
 import { dayNumber, getStreak, loadDailyState } from '../services/daily';
 import { getRecentPlayers, sendInvite } from '../services/friends';
 import { track } from '../services/analytics';
+import { useT } from '../i18n';
 
 const DONATE_URL = import.meta.env.VITE_DONATE_URL;
 import Icon from '../components/Icon';
@@ -13,6 +14,7 @@ import logoMark from '../assets/illustrations/logo-mark.svg';
 export default function Home() {
   const { user, displayName, signIn, signOut } = useAuth();
   const navigate = useNavigate();
+  const t = useT();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -30,7 +32,7 @@ export default function Home() {
       const newCode = await createLobby(user, null, myName);
       navigate(`/lobby/${newCode}`);
     } catch (e) {
-      setError(e.message || 'Ошибка');
+      setError(e.message || t('common.error'));
     } finally {
       setBusy(false);
     }
@@ -45,7 +47,7 @@ export default function Home() {
       await sendInvite(r.uid, newCode, user, myName).catch(() => {});
       navigate(`/lobby/${newCode}`);
     } catch (e) {
-      setError(e.message || 'Ошибка');
+      setError(e.message || t('common.error'));
     } finally {
       setBusy(false);
     }
@@ -54,7 +56,7 @@ export default function Home() {
   const handleJoin = async () => {
     setError('');
     if (!/^\d{4}$/.test(code)) {
-      setError('Код состоит из 4 цифр');
+      setError(t('home.codeErr'));
       return;
     }
     setBusy(true);
@@ -62,7 +64,7 @@ export default function Home() {
       await joinLobby(code, user, myName);
       navigate(`/lobby/${code}`);
     } catch (e) {
-      setError(e.message || 'Ошибка');
+      setError(e.message || t('common.error'));
     } finally {
       setBusy(false);
     }
@@ -78,20 +80,20 @@ export default function Home() {
           <span className="brand-name">Egorii</span>
         </div>
         <div className="user">
-          <button className="iconbtn" onClick={() => navigate('/leaderboard')} title="Таблица лидеров" aria-label="Таблица лидеров">
+          <button className="iconbtn" onClick={() => navigate('/leaderboard')} title={t('lb.title')} aria-label={t('lb.title')}>
             <Icon name="crown" size={18} />
           </button>
-          <button className="avatar-btn" onClick={() => navigate('/profile')} title="Профиль" aria-label="Профиль">
+          <button className="avatar-btn" onClick={() => navigate('/profile')} title={t('profile.nickname')} aria-label={t('profile.nickname')}>
             {user.photoURL
               ? <img src={user.photoURL} alt="" className="avatar" />
               : <div className="avatar ph">{initial}</div>}
           </button>
           {user.isAnonymous ? (
-            <button className="iconbtn" onClick={() => signIn().catch(() => {})} title="Войти через Google — сохранять прогресс и попасть в таблицу лидеров" aria-label="Войти через Google">
+            <button className="iconbtn" onClick={() => signIn().catch(() => {})} title={t('login.google')} aria-label={t('login.google')}>
               <span className="g-mark">G</span>
             </button>
           ) : (
-            <button className="iconbtn" onClick={() => signOut()} title="Выйти" aria-label="Выйти">
+            <button className="iconbtn" onClick={() => signOut()} title={t('profile.logout')} aria-label={t('profile.logout')}>
               <Icon name="logout" size={18} />
             </button>
           )}
@@ -102,25 +104,25 @@ export default function Home() {
         <button className="daily-banner" onClick={() => navigate('/daily')}>
           <span className="db-ico"><Icon name="music" size={22} /></span>
           <span className="db-text">
-            <b>Трек дня #{dayNumber()}</b>
-            <span>{loadDailyState()?.done ? 'Сегодня сыграно — смотри результат' : 'Один трек · 5 попыток · новый каждый день'}</span>
+            <b>{t('home.dailyTitle', { n: dayNumber() })}</b>
+            <span>{loadDailyState()?.done ? t('home.dailyDone') : t('home.dailyHint')}</span>
           </span>
           {getStreak() > 1 && <span className="db-streak"><Icon name="flame" size={13} fill="currentColor" /> {getStreak()}</span>}
           <Icon name="arrowRight" size={18} />
         </button>
 
         <section className="card">
-          <h2>Новая игра</h2>
-          <p className="muted">Включаем 30 секунд трека — угадывай на скорость. Паки музыки выберете в лобби.</p>
+          <h2>{t('home.newGame')}</h2>
+          <p className="muted">{t('home.newGameHint')}</p>
           <button className="btn btn-primary" onClick={handleCreate} disabled={busy}>
-            Создать игру <Icon name="arrowRight" size={18} />
+            {t('home.create')} <Icon name="arrowRight" size={18} />
           </button>
         </section>
 
         {recents.length > 0 && (
           <section className="card">
-            <h2>Снова вместе</h2>
-            <p className="muted">Недавно играли вместе — позови в новую игру одним нажатием.</p>
+            <h2>{t('home.again')}</h2>
+            <p className="muted">{t('home.againHint')}</p>
             <div className="recent-list">
               {recents.map((r) => (
                 <button key={r.uid} className="recent-chip" disabled={busy} onClick={() => playWith(r)}>
@@ -136,8 +138,8 @@ export default function Home() {
         )}
 
         <section className="card">
-          <h2>Игра по коду</h2>
-          <p className="muted">Прислали код? Введи его и присоединяйся.</p>
+          <h2>{t('home.byCode')}</h2>
+          <p className="muted">{t('home.byCodeHint')}</p>
           <input
             className="code-input"
             inputMode="numeric"
@@ -148,20 +150,15 @@ export default function Home() {
             onKeyDown={(e) => { if (e.key === 'Enter') handleJoin(); }}
           />
           <button className="btn btn-secondary" onClick={handleJoin} disabled={busy}>
-            Присоединиться
+            {t('home.join')}
           </button>
         </section>
 
         {error && <div className="error">{error}</div>}
 
         <section className="seo-note">
-          <h3>Что такое Egorii?</h3>
-          <p>
-            Egorii — бесплатная музыкальная викторина онлайн. Угадывай песню по 30-секундному
-            отрывку и год её выпуска: создай лобби, отправь друзьям 4-значный код — и соревнуйтесь
-            в реальном времени. Или заходи каждый день в «Трек дня», держи стрик и делись
-            результатом. Паки на любой вкус: мировые хиты, рок-классика, русская эстрада, K-pop.
-          </p>
+          <h3>{t('home.seoTitle')}</h3>
+          <p>{t('home.seoBody')}</p>
         </section>
 
         <div className="foot-links">
@@ -173,11 +170,11 @@ export default function Home() {
               rel="noopener noreferrer"
               onClick={() => track('donate_click', { from: 'home' })}
             >
-              <Icon name="heart" size={14} /> Поддержать проект
+              <Icon name="heart" size={14} /> {t('common.support')}
             </a>
           )}
           <button className="btn-link legal-link" onClick={() => navigate('/privacy')}>
-            Политика конфиденциальности
+            {t('common.privacy')}
           </button>
         </div>
       </main>

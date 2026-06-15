@@ -285,3 +285,28 @@ export const PACKS = [
 export function getPack(id) {
   return PACKS.find((p) => p.id === id) || null;
 }
+
+// Английские названия паков (песни/исполнители не переводим). Если ключа нет —
+// показываем русское имя.
+const PACK_NAME_EN = {
+  'world-hits': 'World Hits',
+  'rock-classics': 'Rock Classics',
+  'ru-pop': 'Russian Pop',
+  'dota2-2025': 'Dota 2 2025',
+  'ru-2017': 'Russian Music 2017',
+  'platina': 'Platina',
+  'ru-indie': 'Russian Indie',
+  'rock-legends-ru': 'Russian Rock Legends',
+  'disco-90s': '90s Disco',
+  'hits-2000s-ru': '2000s Hits',
+  'movie-soundtracks': 'Movie Soundtracks',
+  'anime-openings': 'Anime Openings',
+  'hits-2010s': '2010s Hits',
+  'ru-rock': 'Russian Rock',
+};
+
+// Локализованное имя пака.
+export function packName(pack, locale) {
+  if (!pack) return '';
+  return locale === 'en' ? (PACK_NAME_EN[pack.id] || pack.name) : pack.name;
+}

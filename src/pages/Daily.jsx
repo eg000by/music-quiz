@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { fetchProfile, saveDailyStreak } from '../services/users';
 import { shareOrCopy } from '../services/share';
 import { track as trackEvent } from '../services/analytics';
+import { useT } from '../i18n';
 import Icon from '../components/Icon';
 
 const FULL_SNIPPET = SNIPPETS[MAX_TRIES - 1];
@@ -17,6 +18,7 @@ const DONATE_URL = import.meta.env.VITE_DONATE_URL;
 export default function Daily() {
   const navigate = useNavigate();
   const { user, signIn } = useAuth();
+  const t = useT();
   const [phase, setPhase] = useState('loading'); // loading | error | play | done
   const [answer, setAnswer] = useState(null);    // песня из пака (title — правильный ответ)
   const [meta, setMeta] = useState(null);        // трек из iTunes (превью, обложка, год, ссылка)
@@ -165,12 +167,12 @@ export default function Daily() {
 
   const handleShare = async () => {
     const res = await shareOrCopy({
-      title: 'Egorii — Трек дня',
+      title: t('daily.shareTitle'),
       text: shareText(st),
       url: `${window.location.origin}/daily`,
     });
-    if (res === 'copied') setShareMsg('Результат скопирован — отправь друзьям');
-    else if (res === 'failed') setShareMsg('Не удалось поделиться');
+    if (res === 'copied') setShareMsg(t('daily.shareCopied'));
+    else if (res === 'failed') setShareMsg(t('daily.shareFailed'));
     else setShareMsg('');
     if (res === 'copied' || res === 'failed') setTimeout(() => setShareMsg(''), 2500);
     if (res !== 'failed') trackEvent('share', { content_type: 'daily', method: res });
@@ -188,8 +190,8 @@ export default function Daily() {
     const g = st.guesses[i];
     if (g?.t === 'c') return { kind: 'right', label: answer?.title || '', sub: meta?.artist, pts: `+${st.score}` };
     if (g?.t === 'w') return { kind: 'wrong', label: g.title, sub: poolByTitle.get(g.title)?.artist };
-    if (g?.t === 's') return { kind: 'skip', label: 'Пропуск' };
-    if (!st.done && i === st.guesses.length) return { kind: 'cur', label: 'Твой ход — слушай и угадывай', pts: `+${POINTS[i]}` };
+    if (g?.t === 's') return { kind: 'skip', label: t('daily.skipRow') };
+    if (!st.done && i === st.guesses.length) return { kind: 'cur', label: t('daily.yourTurn'), pts: `+${POINTS[i]}` };
     return { kind: 'empty', label: '—' };
   }) : [];
 
@@ -199,15 +201,15 @@ export default function Daily() {
     : kind === 'skip' ? '—' : null;
 
   const eyebrow = phase === 'done'
-    ? (st.won ? 'Угадал!' : 'Не угадал · загаданный трек')
-    : 'Трек дня';
+    ? (st.won ? t('daily.won') : t('daily.lostEyebrow'))
+    : t('daily.eyebrow');
 
   return (
     <div className="screen center">
       <audio ref={audioRef} preload="auto" playsInline onEnded={() => setPlaying(false)} />
       <div className="card daily-card">
         <div className="daily-head">
-          <button className="back-link" onClick={() => navigate('/')}><Icon name="home" size={15} /> На главную</button>
+          <button className="back-link" onClick={() => navigate('/')}><Icon name="home" size={15} /> {t('common.home')}</button>
           <span className={`daily-streak-pill${streak > 0 ? ' on' : ''}`}>
             <Icon name="flame" size={14} fill="currentColor" /> {streak}
           </span>
@@ -215,13 +217,13 @@ export default function Daily() {
         <span className="eyebrow daily-eyebrow">{eyebrow}</span>
 
         {phase === 'loading' && (
-          <div className="daily-center"><div className="spinner" /><p className="muted">Готовим трек…</p></div>
+          <div className="daily-center"><div className="spinner" /><p className="muted">{t('daily.loading')}</p></div>
         )}
 
         {phase === 'error' && (
           <div className="daily-center">
-            <p>Не получилось загрузить трек дня. Проверь интернет и попробуй ещё раз.</p>
-            <button className="btn btn-secondary" onClick={() => window.location.reload()}>Повторить</button>
+            <p>{t('daily.error')}</p>
+            <button className="btn btn-secondary" onClick={() => window.location.reload()}>{t('daily.retry')}</button>
           </div>
         )}
 
@@ -231,7 +233,7 @@ export default function Daily() {
               <button
                 className="dscrub-pp"
                 onClick={playing ? stopAudio : () => playSnippet(unlocked)}
-                aria-label={playing ? 'Стоп' : `Слушать ${unlocked} сек`}
+                aria-label={playing ? t('daily.stop') : t('daily.listenSec', { n: unlocked })}
               >
                 <Icon name={playing ? 'pause' : 'play'} size={18} fill="currentColor" />
               </button>
@@ -259,7 +261,7 @@ export default function Daily() {
               <span className="ds-ic"><Icon name="search" size={17} /></span>
               <input
                 className={`daily-input${focused ? ' focus' : ''}`}
-                placeholder="Название или исполнитель…"
+                placeholder={t('daily.searchPh')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onFocus={() => setFocused(true)}
@@ -284,8 +286,8 @@ export default function Daily() {
               onClick={skip}
             >
               {st.guesses.length >= MAX_TRIES - 1
-                ? 'Сдаюсь'
-                : `Пропустить · открыть ещё ${SNIPPETS[st.guesses.length + 1] - unlocked} сек`}
+                ? t('daily.giveUp')
+                : t('daily.skip', { n: SNIPPETS[st.guesses.length + 1] - unlocked })}
             </button>
           </>
         )}
@@ -293,7 +295,7 @@ export default function Daily() {
         {phase === 'done' && st && meta && (
           <>
             <div className="daily-reveal">
-              <button className="daily-art" onClick={playing ? stopAudio : () => playSnippet(0)} aria-label="Послушать трек">
+              <button className="daily-art" onClick={playing ? stopAudio : () => playSnippet(0)} aria-label={t('daily.listen')}>
                 {meta.artwork
                   ? <img src={meta.artwork} alt="" />
                   : <span className="da-ph"><Icon name="music" size={34} /></span>}
@@ -319,25 +321,25 @@ export default function Daily() {
 
             <p className="daily-cap">
               {st.won
-                ? 'Новый трек — завтра. Возвращайся, чтобы не потерять стрик!'
+                ? t('daily.capWin')
                 : streak > 0
-                  ? 'День засчитан — стрик продолжается. Новый трек завтра.'
-                  : 'Сыграй завтра и начни новый стрик.'}
+                  ? t('daily.capLoseStreak')
+                  : t('daily.capLoseNew')}
             </p>
 
             <div className="daily-actions">
               <button className="daily-btn primary" onClick={handleShare}>
-                <Icon name="share" size={17} /> Поделиться результатом
+                <Icon name="share" size={17} /> {t('daily.share')}
               </button>
               <button className="daily-btn dark" onClick={() => navigate('/')}>
-                Сыграть с друзьями <Icon name="arrowRight" size={16} />
+                {t('daily.withFriends')} <Icon name="arrowRight" size={16} />
               </button>
             </div>
             {shareMsg && <p className="share-toast">{shareMsg}</p>}
 
             {user?.isAnonymous && streak > 0 && (
               <button className="btn-link" onClick={() => signIn().catch(() => {})}>
-                Войди через Google — стрик сохранится в профиле
+                {t('daily.signinStreak')}
               </button>
             )}
 
@@ -349,15 +351,15 @@ export default function Daily() {
                 rel="noopener noreferrer"
                 onClick={() => trackEvent('donate_click', { from: 'daily' })}
               >
-                <Icon name="heart" size={14} /> Поддержать проект
+                <Icon name="heart" size={14} /> {t('common.support')}
               </a>
             )}
 
             <p className="daily-courtesy">
               {meta.url ? (
-                <a href={meta.url} target="_blank" rel="noopener noreferrer">Слушать целиком в Apple Music</a>
+                <a href={meta.url} target="_blank" rel="noopener noreferrer">{t('daily.appleMusic')}</a>
               ) : null}
-              <span>Превью предоставлено iTunes</span>
+              <span>{t('daily.courtesy')}</span>
             </p>
           </>
         )}

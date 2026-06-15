@@ -1,86 +1,60 @@
 import { useNavigate } from 'react-router-dom';
+import { useT, useLocale } from '../i18n';
 import Icon from '../components/Icon';
 
 // Политика конфиденциальности. Доступна без входа (вне Gate), чтобы её могли
 // открыть краулеры и пользователи. Контактный e-mail можно поменять при необходимости.
 const CONTACT_EMAIL = 'gladiator030576@gmail.com';
-const UPDATED = '8 июня 2026';
+const UPDATED = { ru: '8 июня 2026', en: 'June 8, 2026' };
 
 export default function Privacy() {
   const navigate = useNavigate();
+  const t = useT();
+  const { locale } = useLocale();
+  const mail = <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
   return (
     <div className="screen">
       <div className="card legal">
-        <h1>Политика конфиденциальности</h1>
-        <p className="muted">Обновлено: {UPDATED}</p>
+        <h1>{t('privacy.title')}</h1>
+        <p className="muted">{t('privacy.updated', { date: UPDATED[locale] || UPDATED.ru })}</p>
 
-        <p>
-          Egorii — музыкальная викторина (далее «Сервис»). Эта страница объясняет, какие
-          данные мы обрабатываем и зачем. Пользуясь Сервисом, вы соглашаетесь с описанным ниже.
-        </p>
+        <p>{t('privacy.intro')}</p>
 
-        <h2>Какие данные мы обрабатываем</h2>
+        <h2>{t('privacy.h.data')}</h2>
         <ul>
-          <li><b>Гостевой вход.</b> При первом заходе создаётся анонимный идентификатор
-            (Firebase Anonymous Auth) — он нужен, чтобы вы могли играть без регистрации.</li>
-          <li><b>Вход через Google.</b> Если вы входите через Google, мы получаем ваше имя
-            и фото профиля — они показываются в лобби и таблице лидеров. Мы не получаем
-            ваш пароль.</li>
-          <li><b>Игровые данные.</b> Результаты партий, счёт, число игр и побед — для
-            таблицы лидеров (только для вошедших через Google; результаты гостей не сохраняются).</li>
-          <li><b>Технические данные и аналитика.</b> Обезличенная статистика использования
-            (заходы, старт/финиш игры, шеринг) через Google Analytics.</li>
+          <li><b>{t('privacy.data.guestLabel')}</b> {t('privacy.data.guest')}</li>
+          <li><b>{t('privacy.data.googleLabel')}</b> {t('privacy.data.google')}</li>
+          <li><b>{t('privacy.data.gameLabel')}</b> {t('privacy.data.game')}</li>
+          <li><b>{t('privacy.data.techLabel')}</b> {t('privacy.data.tech')}</li>
         </ul>
 
-        <h2>Сторонние сервисы</h2>
+        <h2>{t('privacy.h.third')}</h2>
         <ul>
-          <li><b>Google Firebase</b> (хостинг, база данных, аутентификация, App Check /
-            reCAPTCHA для защиты от ботов) — обработка и хранение данных.</li>
-          <li><b>Google Analytics</b> — аналитика; использует файлы cookie.</li>
-          <li><b>Apple iTunes</b> — источник 30-секундных превью треков и обложек.</li>
+          <li>{t('privacy.third.firebase')}</li>
+          <li>{t('privacy.third.ga')}</li>
+          <li>{t('privacy.third.itunes')}</li>
         </ul>
 
-        <h2>Файлы cookie и согласие</h2>
-        <p>
-          Аналитические cookie (Google Analytics) подключаются <b>только после вашего
-          согласия</b> в баннере при первом заходе. Без согласия аналитика не загружается.
-          Изменить решение можно, очистив данные сайта в браузере. reCAPTCHA (защита от
-          ботов) использует технические данные и работает независимо от этого выбора.
-        </p>
+        <h2>{t('privacy.h.cookies')}</h2>
+        <p>{t('privacy.cookies.body')}</p>
 
-        <h2>Хранение и защита</h2>
-        <p>
-          Данные хранятся в инфраструктуре Google Cloud / Firebase. Запись результатов
-          ограничена правилами безопасности; доступ к чужим данным закрыт. Профиль и
-          статистику храним, пока существует ваш аккаунт; по запросу на удаление — стираем.
-        </p>
+        <h2>{t('privacy.h.storage')}</h2>
+        <p>{t('privacy.storage.body')}</p>
 
-        <h2>Передача данных</h2>
-        <p>
-          Google (Firebase, Analytics) может обрабатывать данные на серверах за пределами
-          вашей страны, включая США, — как обработчик данных на своих условиях.
-        </p>
+        <h2>{t('privacy.h.transfer')}</h2>
+        <p>{t('privacy.transfer.body')}</p>
 
-        <h2>Возраст</h2>
-        <p>
-          Сервис не предназначен для детей младше 13 лет. Если вам меньше — пользуйтесь
-          игрой только с согласия родителей и не входите через Google.
-        </p>
+        <h2>{t('privacy.h.age')}</h2>
+        <p>{t('privacy.age.body')}</p>
 
-        <h2>Ваши права</h2>
-        <p>
-          Вы можете запросить доступ к своим данным, их исправление или удаление, отозвать
-          согласие на аналитику и возразить против обработки — написав на{' '}
-          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Также можно в любой
-          момент выйти из аккаунта. Если вы находитесь в ЕС, у вас есть право подать жалобу
-          в надзорный орган по защите данных.
-        </p>
+        <h2>{t('privacy.h.rights')}</h2>
+        <p>{t('privacy.rights.body')} {mail}{t('privacy.rights.body2')}</p>
 
-        <h2>Контакты</h2>
-        <p>По вопросам конфиденциальности: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</p>
+        <h2>{t('privacy.h.contact')}</h2>
+        <p>{t('privacy.contact.body')} {mail}.</p>
 
         <button className="btn btn-secondary" onClick={() => navigate('/')}>
-          <Icon name="home" size={18} /> На главную
+          <Icon name="home" size={18} /> {t('common.home')}
         </button>
       </div>
     </div>

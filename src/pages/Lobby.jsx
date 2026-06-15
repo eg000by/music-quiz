@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../hooks/useLobby';
-import { getPack, PACKS } from '../data/packs';
+import { useT, useLocale } from '../i18n';
+import { getPack, PACKS, packName } from '../data/packs';
 import {
   setReady,
   startGame,
@@ -23,8 +24,8 @@ import Icon from '../components/Icon';
 const MIN_ROUNDS = 3;
 const MAX_ROUNDS = 15;
 const MODES = [
-  { id: 'normal', label: 'Обычный' },
-  { id: 'evolution', label: 'Эволюция трека' },
+  { id: 'normal', key: 'lobby.modeNormal' },
+  { id: 'evolution', key: 'lobby.modeEvolution' },
 ];
 
 export default function Lobby() {
@@ -32,6 +33,8 @@ export default function Lobby() {
   const { user, displayName } = useAuth();
   const { lobby, loading } = useLobby(code);
   const navigate = useNavigate();
+  const t = useT();
+  const { locale } = useLocale();
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
@@ -48,8 +51,8 @@ export default function Lobby() {
     if (joiningRef.current) return;
     joiningRef.current = true;
     track('invite_open', { code });
-    joinLobby(code, user, user.isAnonymous ? undefined : displayName).catch((e) => setError(e.message || 'Не удалось войти в лобби'));
-  }, [lobby, user, code, displayName]);
+    joinLobby(code, user, user.isAnonymous ? undefined : displayName).catch((e) => setError(e.message || t('lobby.joinError')));
+  }, [lobby, user, code, displayName, t]);
 
   // заранее измеряем смещение часов, чтобы хост стартовал раунды в серверном времени
   useEffect(() => {
@@ -69,12 +72,12 @@ export default function Lobby() {
   const handleShareInvite = async () => {
     const url = `${window.location.origin}/lobby/${code}`;
     const res = await shareOrCopy({
-      title: 'Музыкальная викторина',
-      text: `Заходи в музыкальную викторину! Код лобби: ${code}`,
+      title: t('lobby.shareTitle'),
+      text: t('lobby.shareText', { code }),
       url,
     });
-    if (res === 'copied') setShareMsg('Ссылка скопирована — отправь другу');
-    else if (res === 'failed') setShareMsg('Не удалось поделиться');
+    if (res === 'copied') setShareMsg(t('lobby.linkCopied'));
+    else if (res === 'failed') setShareMsg(t('lobby.shareFailed'));
     else setShareMsg('');
     if (res === 'copied' || res === 'failed') setTimeout(() => setShareMsg(''), 2500);
     if (res !== 'failed') track('share', { content_type: 'invite', method: res });
@@ -87,8 +90,8 @@ export default function Lobby() {
     return (
       <div className="screen center">
         <div className="card center-card">
-          <p>Лобби не найдено.</p>
-          <button className="btn btn-secondary" onClick={() => navigate('/')}>На главную</button>
+          <p>{t('lobby.notFound')}</p>
+          <button className="btn btn-secondary" onClick={() => navigate('/')}>{t('common.home')}</button>
         </div>
       </div>
     );
@@ -101,12 +104,12 @@ export default function Lobby() {
         {error ? (
           <div className="card center-card">
             <p>{error}</p>
-            <button className="btn btn-secondary" onClick={() => navigate('/')}>На главную</button>
+            <button className="btn btn-secondary" onClick={() => navigate('/')}>{t('common.home')}</button>
           </div>
         ) : (
           <>
             <div className="spinner" />
-            <p className="muted">Входим в лобби…</p>
+            <p className="muted">{t('lobby.entering')}</p>
           </>
         )}
       </div>
@@ -157,7 +160,7 @@ export default function Lobby() {
     try {
       await startGame(code);
     } catch (e) {
-      setError(e.message || 'Ошибка запуска');
+      setError(e.message || t('lobby.startErr'));
       setStarting(false);
     }
   };
@@ -165,13 +168,13 @@ export default function Lobby() {
   return (
     <div className="screen center">
       <div className="card lobby-card">
-        <span className="eyebrow">Код лобби</span>
+        <span className="eyebrow">{t('lobby.codeLabel')}</span>
         <div className="code-display">{lobby.code}</div>
         <p className="meta-line">
           {hasPacks
-            ? `В игре: ${poolSongs} песен · ${roundCount} раундов`
-            : `Выбери паки · ${roundCount} раундов`}
-          {mode === 'evolution' && ' · Эволюция трека'}
+            ? t('lobby.inGame', { songs: poolSongs, rounds: roundCount })
+            : t('lobby.pickPacks', { rounds: roundCount })}
+          {mode === 'evolution' && ` · ${t('lobby.modeEvolution')}`}
         </p>
 
         <div className="players-list">
@@ -186,7 +189,7 @@ export default function Lobby() {
                 </span>
                 <div className="player-tags">
                   {(p.packs || []).length === 0
-                    ? <span className="no-packs">паки не выбраны</span>
+                    ? <span className="no-packs">{t('lobby.noPacks')}</span>
                     : (p.packs || []).map((id) => {
                         const pk = getPack(id);
                         if (!pk) return null;
@@ -196,29 +199,29 @@ export default function Lobby() {
                             key={id}
                             className="pack-chip mine"
                             onClick={() => togglePlayerPack(code, user.uid, id, false).catch(() => {})}
-                            title="Убрать пак"
+                            title={t('lobby.removePack')}
                           >
-                            <Icon name={pk.icon} size={12} /> {pk.name} <Icon name="x" size={11} />
+                            <Icon name={pk.icon} size={12} /> {packName(pk, locale)} <Icon name="x" size={11} />
                           </button>
                         ) : (
-                          <span key={id} className="pack-chip"><Icon name={pk.icon} size={12} /> {pk.name}</span>
+                          <span key={id} className="pack-chip"><Icon name={pk.icon} size={12} /> {packName(pk, locale)}</span>
                         );
                       })}
                 </div>
               </div>
-              <span className={`ready-badge${p.ready ? ' on' : ''}`}>{p.ready ? 'готов' : 'не готов'}</span>
+              <span className={`ready-badge${p.ready ? ' on' : ''}`}>{p.ready ? t('lobby.ready') : t('lobby.notReady')}</span>
             </div>
           ))}
 
           <button className="invite-row" onClick={handleShareInvite}>
-            <Icon name="share" size={16} /> Позвать друзей по коду
+            <Icon name="share" size={16} /> {t('lobby.inviteByCode')}
           </button>
         </div>
         {shareMsg && <p className="invite-toast">{shareMsg}</p>}
 
         {invitable.length > 0 && (
           <div className="recent-row">
-            <span className="settings-label"><span>Недавно играли вместе</span></span>
+            <span className="settings-label"><span>{t('lobby.recentTogether')}</span></span>
             <div className="recent-list">
               {invitable.map((r) => (
                 <button
@@ -232,7 +235,7 @@ export default function Lobby() {
                     : <span className="rc-ava rc-ph">{(r.name || 'И')[0]}</span>}
                   {shortName(r.name)}
                   {invited.has(r.uid)
-                    ? <><Icon name="check" size={13} /> позвали</>
+                    ? <><Icon name="check" size={13} /> {t('lobby.invited')}</>
                     : <Icon name="share" size={13} />}
                 </button>
               ))}
@@ -242,7 +245,7 @@ export default function Lobby() {
 
         <div className="settings">
           <span className="settings-label">
-            <span>Мои паки · объединяются у всех</span>
+            <span>{t('lobby.myPacks')}</span>
             <span className="lab-count">{myPacks.length}</span>
           </span>
           <div className={`pack-toggles${manyPacks ? ' scroll' : ''}`}>
@@ -255,7 +258,7 @@ export default function Lobby() {
                   onClick={() => toggleMyPack(p.id)}
                 >
                   <Icon name={p.icon} size={15} />
-                  {p.name}
+                  {packName(p, locale)}
                   {on && <span className="pt-tick"><Icon name="check" size={14} /></span>}
                 </button>
               );
@@ -264,7 +267,7 @@ export default function Lobby() {
 
           {isHost && (
             <>
-              <span className="settings-label"><span>Раундов</span><span className="lab-count">{roundCount}</span></span>
+              <span className="settings-label"><span>{t('lobby.rounds')}</span><span className="lab-count">{roundCount}</span></span>
               <input
                 className="rounds-slider"
                 type="range"
@@ -272,10 +275,10 @@ export default function Lobby() {
                 max={MAX_ROUNDS}
                 value={roundCount}
                 onChange={(e) => setLobbyRounds(code, parseInt(e.target.value, 10)).catch(() => {})}
-                aria-label="Количество раундов"
+                aria-label={t('lobby.rounds')}
               />
 
-              <span className="settings-label"><span>Режим</span></span>
+              <span className="settings-label"><span>{t('lobby.mode')}</span></span>
               <div className="seg">
                 {MODES.map((m) => (
                   <button
@@ -284,22 +287,22 @@ export default function Lobby() {
                     onClick={() => setLobbyMode(code, m.id).catch(() => {})}
                   >
                     <span className="seg-tick"><Icon name="check" size={15} /></span>
-                    {m.label}
+                    {t(m.key)}
                   </button>
                 ))}
               </div>
               {mode === 'evolution' && (
-                <p className="muted mode-hint">Трек звучит глухо и проясняется к концу раунда — угадывай раньше.</p>
+                <p className="muted mode-hint">{t('lobby.evolutionHint')}</p>
               )}
             </>
           )}
         </div>
 
         {me.ready ? (
-          <button className="btn btn-ghost" onClick={toggleReady}>Отменить готовность</button>
+          <button className="btn btn-ghost" onClick={toggleReady}>{t('lobby.cancelReady')}</button>
         ) : (
           <button className="btn btn-primary" onClick={toggleReady}>
-            <Icon name="check" size={18} /> Я готов
+            <Icon name="check" size={18} /> {t('lobby.iAmReady')}
           </button>
         )}
 
@@ -310,18 +313,18 @@ export default function Lobby() {
               onClick={handleStart}
               disabled={!everyoneReady || starting || !hasPacks}
             >
-              {starting ? 'Загрузка треков…' : <><Icon name="play" size={18} /> Начать игру</>}
+              {starting ? t('lobby.loadingTracks') : <><Icon name="play" size={18} /> {t('lobby.start')}</>}
             </button>
-            {!hasPacks && <p className="muted" style={{ marginTop: 8 }}>Выбери хотя бы один пак</p>}
+            {!hasPacks && <p className="muted" style={{ marginTop: 8 }}>{t('lobby.pickAtLeastOne')}</p>}
           </>
         ) : (
-          <div className="wait-note"><span className="dot" /> Хост запустит игру, когда все будут готовы</div>
+          <div className="wait-note"><span className="dot" /> {t('lobby.waitHost')}</div>
         )}
 
         {error && <div className="error">{error}</div>}
 
         <div className="leave-wrap">
-          <button className="leave-link" onClick={handleLeave}><Icon name="logout" size={15} /> Выйти из лобби</button>
+          <button className="leave-link" onClick={handleLeave}><Icon name="logout" size={15} /> {t('lobby.leave')}</button>
         </div>
       </div>
     </div>

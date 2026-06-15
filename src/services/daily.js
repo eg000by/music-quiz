@@ -4,6 +4,7 @@
 // не нужно (важно для квоты Spark). Прогресс и стрик живут в localStorage.
 import { PACKS } from '../data/packs';
 import { searchTrack } from './tracksService';
+import { tg } from '../i18n';
 
 // Секунды открытого превью на каждую попытку и очки за угадывание с этой попытки.
 export const SNIPPETS = [2, 4, 7, 11, 16];
@@ -137,6 +138,6 @@ export function shareText(state) {
   const cell = { s: '⬛', w: '🟥', c: '🟩' };
   const row = state.guesses.map((g) => cell[g.t] || '⬜').join('')
     + '⬜'.repeat(Math.max(0, MAX_TRIES - state.guesses.length));
-  const tail = state.won ? `${state.score} очков` : 'не угадал';
-  return `Egorii · Трек дня #${state.day}\n${row} · ${tail}`;
+  const tail = state.won ? tg('dailyShare.won', { n: state.score }) : tg('dailyShare.lost');
+  return `${tg('dailyShare.head', { n: state.day })}\n${row} · ${tail}`;
 }

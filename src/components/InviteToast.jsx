@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { subscribeInvite, clearInvite } from '../services/friends';
 import { track } from '../services/analytics';
+import { useT } from '../i18n';
 import Icon from './Icon';
 
 // Приглашение актуально пару минут: дольше — отправитель скорее всего уже ушёл.
@@ -13,6 +14,7 @@ export default function InviteToast() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const t = useT();
   const [invite, setInvite] = useState(null);
 
   useEffect(() => {
@@ -39,9 +41,9 @@ export default function InviteToast() {
 
   return (
     <div className="invite-pop" role="alert">
-      <span className="ip-text"><b>{invite.fromName}</b> зовёт в игру</span>
-      <button className="ip-join" onClick={accept}><Icon name="play" size={14} /> Войти</button>
-      <button className="ip-x" onClick={dismiss} aria-label="Скрыть приглашение"><Icon name="x" size={16} /></button>
+      <span className="ip-text"><b>{invite.fromName}</b> {t('invite.calls')}</span>
+      <button className="ip-join" onClick={accept}><Icon name="play" size={14} /> {t('invite.join')}</button>
+      <button className="ip-x" onClick={dismiss} aria-label={t('invite.hide')}><Icon name="x" size={16} /></button>
     </div>
   );
 }

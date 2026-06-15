@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fetchLeaderboard } from '../services/users';
+import { useT, useLocale } from '../i18n';
 import Icon from '../components/Icon';
 import logoMark from '../assets/illustrations/logo-mark.svg';
 import trophy from '../assets/illustrations/trophy.svg';
@@ -11,14 +12,16 @@ const MEDALS = ['#FFB300', '#B8BCC6', '#CD7F4B']; // золото / серебр
 export default function Leaderboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const t = useT();
+  const { locale } = useLocale();
   const [rows, setRows] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     fetchLeaderboard(100)
       .then(setRows)
-      .catch(() => setError('Не удалось загрузить таблицу лидеров'));
-  }, []);
+      .catch(() => setError(t('lb.loadError')));
+  }, [t]);
 
   return (
     <div className="screen">
@@ -27,7 +30,7 @@ export default function Leaderboard() {
           <img className="brand-logo-img" src={logoMark} alt="" />
           <span className="brand-name">Egorii</span>
         </button>
-        <button className="iconbtn" onClick={() => navigate('/')} title="На главную" aria-label="На главную">
+        <button className="iconbtn" onClick={() => navigate('/')} title={t('common.home')} aria-label={t('common.home')}>
           <Icon name="home" size={18} />
         </button>
       </header>
@@ -35,9 +38,9 @@ export default function Leaderboard() {
       <section className="card">
         <div className="lb-head">
           <span className="lb-badge"><Icon name="crown" size={22} /></span>
-          <h2>Таблица лидеров</h2>
+          <h2>{t('lb.title')}</h2>
         </div>
-        <p className="muted lb-sub">Сумма очков по всем сыгранным партиям</p>
+        <p className="muted lb-sub">{t('lb.sub')}</p>
 
         {error && <div className="error">{error}</div>}
 
@@ -48,9 +51,9 @@ export default function Leaderboard() {
         {rows && rows.length === 0 && (
           <div className="empty">
             <div className="empty-illo"><img src={trophy} alt="" /></div>
-            <p className="muted">Пока никто не сыграл ни одной партии. Сыграй первым — и займёшь вершину.</p>
+            <p className="muted">{t('lb.empty')}</p>
             <button className="btn btn-primary" onClick={() => navigate('/')}>
-              <Icon name="play" size={16} /> Сыграть партию
+              <Icon name="play" size={16} /> {t('lb.playOne')}
             </button>
           </div>
         )}
@@ -69,10 +72,10 @@ export default function Leaderboard() {
                     ? <img src={p.photo} alt="" className="avatar" />
                     : <span className={`avatar${me ? ' flame' : ''}`}>{(p.nickname || p.name || 'И')[0]}</span>}
                   <div className="lb-main">
-                    <span className="lb-name">{p.nickname || p.name || 'Игрок'}{me && <span className="you-tag">ты</span>}</span>
-                    <span className="lb-meta">{p.gamesPlayed || 0} игр · {p.wins || 0} побед</span>
+                    <span className="lb-name">{p.nickname || p.name || 'Игрок'}{me && <span className="you-tag">{t('common.you')}</span>}</span>
+                    <span className="lb-meta">{t('lb.meta', { games: p.gamesPlayed || 0, wins: p.wins || 0 })}</span>
                   </div>
-                  <span className="lb-score">{(p.totalScore || 0).toLocaleString('ru-RU')}</span>
+                  <span className="lb-score">{(p.totalScore || 0).toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU')}</span>
                 </div>
               );
             })}
