@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { createLobby, joinLobby, shortName } from '../services/lobby';
+import { createLobby, joinLobby, quickMatch, leaveLobby, shortName } from '../services/lobby';
 import { dayNumber, getStreak, loadDailyState } from '../services/daily';
 import { getRecentPlayers, sendInvite } from '../services/friends';
 import { track } from '../services/analytics';
 import { useT } from '../i18n';
+import Icon from '../components/Icon';
+import QuickMatchSearch from '../components/QuickMatchSearch';
+import logoMark from '../assets/illustrations/logo-mark.svg';
 
 const DONATE_URL = import.meta.env.VITE_DONATE_URL;
-import Icon from '../components/Icon';
-import logoMark from '../assets/illustrations/logo-mark.svg';
 
 export default function Home() {
   const { user, displayName, signIn, signOut } = useAuth();
@@ -19,10 +20,31 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [recents] = useState(() => getRecentPlayers().slice(0, 6));
+  const [match, setMatch] = useState(null); // { code, role } — идёт быстрый матч
 
   // Эффективное имя (никнейм/Google) — только для зарегистрированных; у гостей
   // остаётся авто-«Игрок N», поэтому им передаём undefined.
   const myName = user.isAnonymous ? undefined : displayName;
+
+  // «Быстрый матч»: подбор случайного соперника (см. QuickMatchSearch).
+  const handleQuick = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      setMatch(await quickMatch(user, myName));
+    } catch (e) {
+      setError(e.message || t('common.error'));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const quickCancel = () => setMatch(null);
+  const quickFallback = async () => {
+    const prev = match?.code;
+    setMatch(null);
+    if (prev) await leaveLobby(prev, user.uid).catch(() => {});
+    handleCreate();
+  };
 
   // Паки выбираются в лобби (свои у каждого игрока, объединяются) — тут только создание.
   const handleCreate = async () => {
@@ -117,6 +139,10 @@ export default function Home() {
           <button className="btn btn-primary" onClick={handleCreate} disabled={busy}>
             {t('home.create')} <Icon name="arrowRight" size={18} />
           </button>
+          <button className="btn btn-secondary" onClick={handleQuick} disabled={busy}>
+            <Icon name="zap" size={18} /> {t('home.quickMatch')}
+          </button>
+          <p className="muted quick-sub">{t('home.quickMatchHint')}</p>
         </section>
 
         {recents.length > 0 && (
@@ -178,6 +204,15 @@ export default function Home() {
           </button>
         </div>
       </main>
+
+      {match && (
+        <QuickMatchSearch
+          code={match.code}
+          role={match.role}
+          onCancel={quickCancel}
+          onFallback={quickFallback}
+        />
+      )}
     </div>
   );
 }

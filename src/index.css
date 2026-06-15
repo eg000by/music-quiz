@@ -816,3 +816,22 @@ button.pack-chip.mine { font-family:var(--font-sans); cursor:pointer; }
 .pstat b { font-size:20px; font-variant-numeric:tabular-nums; }
 .pstat span { font-size:12px; color:var(--ink-60); }
 .profile-lang { display:flex; flex-direction:column; gap:8px; }
+
+/* ============ Быстрый матч ============ */
+.quick-sub { font-size:12.5px; text-align:center; margin-top:6px; }
+.quick-overlay {
+  position:fixed; inset:0; z-index:120;
+  background:rgba(251,247,241,.86); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center; padding:22px;
+}
+.quick-card {
+  background:var(--paper-pure); border:1.5px solid var(--ink); border-radius:var(--r-lg);
+  padding:26px 24px; width:min(340px,100%); text-align:center;
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+}
+.quick-card b { font-size:20px; }
+.quick-card .btn { margin-top:6px; }
+.quick-ico {
+  width:52px; height:52px; border-radius:50%; display:grid; place-items:center;
+  background:var(--paper-press); color:var(--flame-cta);
+}

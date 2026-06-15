@@ -128,7 +128,11 @@ service cloud.firestore {
           !(request.auth.uid in resource.data.players)
           && resource.data.status == 'waiting'
           && request.resource.data.players.size() <= maxPlayers()
-          && changedKeys().hasOnly(['players', 'playerOrder'])
+          // присоединяясь к открытой дуэли, игрок может закрыть лобби (open: true→false),
+          // но не открыть его заново и не менять флаг duel
+          && changedKeys().hasOnly(['players', 'playerOrder', 'open'])
+          && (!changedKeys().hasAny(['open'])
+              || (resource.data.open == true && request.resource.data.open == false))
           && request.auth.uid in request.resource.data.players
           && onlyOwn('players')
           && request.resource.data.players[request.auth.uid].score == 0

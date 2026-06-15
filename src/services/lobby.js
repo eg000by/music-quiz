@@ -6,6 +6,7 @@ import {
   collection,
   query,
   where,
+  limit,
   getDoc,
   getDocs,
   setDoc,
@@ -27,6 +28,10 @@ import { track } from './analytics';
 
 const DEFAULT_ROUNDS = 8;
 const MAX_PLAYERS = 4;
+
+// «Быстрый матч» — короткая дуэль со случайным соперником.
+const DUEL_PACK = 'world-hits';
+const DUEL_ROUNDS = 5;
 
 // Лобби живёт ограниченное время. Партия идёт минуты, поэтому всё, что старше
 // нескольких часов — это заброшенные/завершённые лобби, которые можно удалять.
@@ -131,6 +136,88 @@ export async function createLobby(user, pack, name) {
     return code;
   }
   throw new Error('Не удалось создать лобби, попробуй ещё раз');
+}
+
+// === «Быстрый матч»: матчмейкинг через открытые дуэльные лобби (без сервера) ===
+// Игрок либо присоединяется к открытому дуэльному лобби, либо создаёт своё и ждёт.
+// Никаких кросс-пользовательских записей: каждый пишет только свой объект игрока.
+
+// Создаёт открытое дуэльное лобби (open:true) и ждёт случайного соперника.
+export async function createDuelLobby(user, name) {
+  for (let i = 0; i < 10; i++) {
+    const code = genCode();
+    const ref = doc(db, 'lobbies', code);
+    const snap = await getDoc(ref);
+    if (snap.exists()) continue;
+    await setDoc(ref, {
+      code,
+      hostId: user.uid,
+      hostName: name || user.displayName || 'Игрок',
+      status: 'waiting',
+      duel: true,
+      open: true, // ждём случайного второго игрока
+      players: { [user.uid]: { ...playerObj(user, 'Игрок 1', name), ready: true, packs: [DUEL_PACK] } },
+      playerOrder: [user.uid],
+      roundCount: DUEL_ROUNDS,
+      mode: 'normal',
+      totalRounds: 0,
+      rounds: [],
+      current: null,
+      answers: {},
+      log: [],
+      createdAt: serverTimestamp(),
+    });
+    return code;
+  }
+  throw new Error('Не удалось создать лобби, попробуй ещё раз');
+}
+
+// Ищет открытые дуэльные лобби. Один equality-фильтр (open==true) — автоматический
+// одно-польный индекс, без составного. Остальное фильтруем/сортируем на клиенте.
+export async function findOpenDuel(excludeUid) {
+  const q = query(collection(db, 'lobbies'), where('open', '==', true), limit(10));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => d.data())
+    .filter((l) => l.status === 'waiting' && l.duel === true
+      && Object.keys(l.players || {}).length < 2 && l.hostId !== excludeUid)
+    .sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
+}
+
+// Присоединяется к дуэли: добавляет себя (ready, дуэльный пак) и закрывает лобби.
+// После записи перечитывает: при гонке (стало >2 игроков или не попал в первые
+// двое) выходит и бросает 'race', чтобы вызывающий попробовал следующее лобби.
+export async function joinDuelLobby(code, user, name) {
+  const ref = doc(db, 'lobbies', code);
+  await updateDoc(ref, {
+    [`players.${user.uid}`]: { ...playerObj(user, 'Игрок 2', name), ready: true, packs: [DUEL_PACK] },
+    playerOrder: arrayUnion(user.uid),
+    open: false,
+  });
+  const snap = await getDoc(ref);
+  const data = snap.data();
+  const order = data?.playerOrder || [];
+  if (!data || Object.keys(data.players || {}).length > 2 || order.slice(0, 2).indexOf(user.uid) === -1) {
+    await leaveLobby(code, user.uid).catch(() => {});
+    throw new Error('race');
+  }
+  return code;
+}
+
+// Точка входа: найти открытую дуэль и войти, иначе создать свою. Возвращает
+// { code, role }, role: 'guest' (вошёл) | 'host' (создал и ждёт).
+export async function quickMatch(user, name) {
+  const candidates = await findOpenDuel(user.uid);
+  for (const c of candidates) {
+    try {
+      await joinDuelLobby(c.code, user, name);
+      return { code: c.code, role: 'guest' };
+    } catch {
+      // гонка/занято — пробуем следующего кандидата
+    }
+  }
+  const code = await createDuelLobby(user, name);
+  return { code, role: 'host' };
 }
 
 export async function joinLobby(code, user, name) {
